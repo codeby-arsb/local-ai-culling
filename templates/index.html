@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Culling Feedback Dashboard</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #121212; color: #f0f0f0; font-family: sans-serif; display: flex; height: 100vh; overflow: hidden; transition: background 0.3s; }
+        body.light-theme { background-color: #f5f5f5; color: #111; }
+        
+        #viewer-container { flex: 1; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; background-color: #000; cursor: grab; }
+        body.light-theme #viewer-container { background-color: #e0e0e0; }
+        
+        #viewer-image { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center center; transition: transform 0.1s ease; pointer-events: none; }
+        
+        #sidebar { width: 380px; background-color: #1e1e1e; border-left: 1px solid #333; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; transition: background 0.3s; }
+        body.light-theme #sidebar { background-color: #fff; border-left-color: #ddd; }
+        
+        .stat-box { background: #2c2c2c; padding: 15px; border-radius: 8px; margin-bottom: 20px; transition: background 0.3s; }
+        body.light-theme .stat-box { background: #f0f0f0; border: 1px solid #ddd; }
+        
+        .title { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+        body.light-theme .title { color: #555; }
+        
+        .value { font-size: 1.5em; font-weight: bold; margin-bottom: 5px; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.6em; vertical-align: middle; margin-left: 8px; color: #fff; background: #555; }
+        
+        .keep { color: #50cd32; }
+        .review { color: #ffd700; }
+        .reject { color: #dc143c; }
+        
+        .info-row { margin-bottom: 8px; font-size: 0.9em; display: flex; justify-content: space-between; }
+        .info-label { color: #888; }
+        body.light-theme .info-label { color: #666; }
+        
+        select { width: 100%; padding: 8px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; margin-bottom: 10px; }
+        body.light-theme select { background: #fff; color: #111; border-color: #ccc; }
+        
+        button.toggle { background: transparent; color: #888; border: 1px solid #555; padding: 5px 10px; border-radius: 4px; cursor: pointer; float: right; }
+        button.toggle:hover { background: #333; color: #fff; }
+        body.light-theme button.toggle:hover { background: #ddd; color: #000; }
+        
+        #progress { margin-top: auto; padding-top: 20px; border-top: 1px solid #333; }
+        body.light-theme #progress { border-top-color: #ddd; }
+        .progress-bar { width: 100%; height: 8px; background: #444; border-radius: 4px; margin-bottom: 10px; overflow: hidden; }
+        body.light-theme .progress-bar { background: #ddd; }
+        .progress-fill { height: 100%; background: #007acc; width: 0%; transition: width 0.3s ease; }
+        
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        #modal { background: #1e1e1e; padding: 30px; border-radius: 10px; width: 500px; max-width: 90%; border: 1px solid #444; }
+        body.light-theme #modal { background: #fff; border-color: #ccc; color: #111; }
+        
+        #modal h2 { margin-top: 0; }
+        .reason-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .reason-btn { background: #2c2c2c; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 5px; cursor: pointer; text-align: left; }
+        body.light-theme .reason-btn { background: #f0f0f0; border-color: #ccc; color: #111; }
+        .reason-btn:hover, .reason-btn:focus { background: #444; border-color: #666; outline: none; }
+        body.light-theme .reason-btn:hover, body.light-theme .reason-btn:focus { background: #e0e0e0; }
+        .reason-btn.selected { background: #007acc; border-color: #0098ff; color: #fff; }
+        
+        #notes { width: 100%; height: 80px; background: #2c2c2c; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 5px; resize: none; margin-bottom: 20px; box-sizing: border-box; }
+        body.light-theme #notes { background: #fafafa; border-color: #ccc; color: #111; }
+        
+        .action-row { display: flex; justify-content: flex-end; gap: 10px; }
+        .btn { padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; border: none; }
+        .btn-cancel { background: #444; color: #fff; }
+        .btn-submit { background: #007acc; color: #fff; }
+        
+        #controls-help { margin-top: 20px; font-size: 0.85em; color: #666; }
+        .key { display: inline-block; background: #333; padding: 2px 6px; border-radius: 4px; color: #aaa; margin-right: 5px; }
+        body.light-theme .key { background: #ddd; color: #555; }
+    </style>
+</head>
+<body>
+
+    <div id="viewer-container">
+        <img id="viewer-image" src="" alt="Preview">
+        <svg id="svgLayer" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: none;"></svg>
+    </div>
+
+    <div id="sidebar">
+        <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 0.9em; display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="inspector-toggle" onchange="savePrefs(); toggleInspectorMode()" style="margin-right: 8px;">
+                Scene Intelligence
+            </label>
+            <button class="toggle" onclick="toggleTheme()">Toggle Theme</button>
+        </div>
+
+        <div class="stat-box">
+            <div class="title" id="filename">Loading...</div>
+            <div style="margin-bottom: 10px;">
+                <span class="value" id="ai-class">...</span>
+            </div>
+            <div class="info-row" id="confidence-row" style="display:none;">
+                <span class="info-label">AI Confidence:</span> 
+                <span class="badge" id="ai-confidence"></span>
+            </div>
+            <div class="info-row" id="editability-row" style="display:none; margin-top: 5px;">
+                <span class="info-label">Editability Score:</span> 
+                <span class="badge" id="ai-editability"></span>
+            </div>
+        </div>
+        
+        <div class="stat-box" id="inspector-panel" style="display: none; border: 1px solid #007acc;">
+            <div class="title" style="color: #007acc;">Scene Intelligence Layers</div>
+            <div id="inspector-controls">
+                <div style="margin-bottom: 10px;">
+                    <div style="font-weight: bold; color: #aaa; margin-bottom: 5px; font-size: 0.85em; text-transform: uppercase;">People</div>
+                    <label style="display:block;margin-bottom:3px;cursor:pointer;font-size:0.9em;"><input type="checkbox" id="layer-faces" onchange="savePrefs(); drawOverlays()" disabled style="width:auto;margin-right:8px;"> Face Detection</label>
+                    <label style="display:block;margin-bottom:3px;cursor:pointer;font-size:0.9em;"><input type="checkbox" id="layer-eyes" onchange="savePrefs(); drawOverlays()" disabled style="width:auto;margin-right:8px;"> Eye State</label>
+                    <label style="display:block;margin-bottom:3px;cursor:pointer;color:#555;font-size:0.9em;"><input type="checkbox" disabled style="width:auto;margin-right:8px;"> Face Mesh</label>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <div style="font-weight: bold; color: #aaa; margin-bottom: 5px; font-size: 0.85em; text-transform: uppercase;">Scene</div>
+                    <label style="display:block;margin-bottom:3px;cursor:pointer;font-size:0.9em;"><input type="checkbox" id="layer-subjects" onchange="savePrefs(); drawOverlays()" disabled style="width:auto;margin-right:8px;"> Subjects</label>
+                    <label style="display:block;margin-bottom:3px;cursor:pointer;color:#555;font-size:0.9em;"><input type="checkbox" disabled style="width:auto;margin-right:8px;"> Focus</label>
+                    <label style="display:block;margin-bottom:3px;cursor:pointer;color:#555;font-size:0.9em;"><input type="checkbox" disabled style="width:auto;margin-right:8px;"> Exposure</label>
+                </div>
+                <div>
+                    <div style="font-weight: bold; color: #aaa; margin-bottom: 5px; font-size: 0.85em; text-transform: uppercase;">Future</div>
+                    <label style="display:block;margin-bottom:3px;cursor:pointer;color:#555;font-size:0.9em;"><input type="checkbox" disabled style="width:auto;margin-right:8px;"> Recovery</label>
+                    <label style="display:block;margin-bottom:3px;cursor:pointer;color:#555;font-size:0.9em;"><input type="checkbox" disabled style="width:auto;margin-right:8px;"> Pose</label>
+                    <label style="display:block;margin-bottom:3px;cursor:pointer;color:#555;font-size:0.9em;"><input type="checkbox" disabled style="width:auto;margin-right:8px;"> Composition</label>
+                </div>
+            </div>
+            
+            <div class="title" style="color: #007acc; margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">Expression Intelligence</div>
+            <div id="expression-panel" style="font-size: 0.9em; display: none;">
+                <div style="margin-bottom: 4px;">👁 Eyes: <strong id="expr-eyes">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">😊 Expression: <strong id="expr-type">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">👤 Visibility: <strong id="expr-vis">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">📷 Face Quality: <strong id="expr-qual">Unknown</strong></div>
+            </div>
+            <div id="expression-none" style="font-size: 0.9em; color: #777;">No face detected.</div>
+        </div>
+
+        
+        <div class="stat-box">
+            <div class="title">Filters & Navigation</div>
+            <select id="filter-class" onchange="applyFilters()">
+                <option value="ALL">Show All Classifications</option>
+                <option value="KEEP">Show Only KEEP</option>
+                <option value="REVIEW">Show Only REVIEW</option>
+                <option value="REJECT">Show Only REJECT</option>
+            </select>
+            <select id="filter-burst" onchange="applyFilters()">
+                <option value="ALL">All Burst Groups</option>
+                <!-- Populated dynamically -->
+            </select>
+        </div>
+
+        <div class="stat-box">
+            <div class="title">Session Statistics</div>
+            <div class="info-row"><span class="info-label">Agreement Rate:</span> <span id="stat-agree">...</span></div>
+            <div class="info-row"><span class="info-label">Major Disagreements:</span> <span id="stat-major">...</span></div>
+        </div>
+        
+        <div id="controls-help">
+            <div class="info-row"><span class="key">A</span> <span>Agree with AI</span></div>
+            <div class="info-row"><span class="key">K</span> <span>Override to KEEP</span></div>
+            <div class="info-row"><span class="key">V</span> <span>Override to REVIEW</span></div>
+            <div class="info-row"><span class="key">R</span> <span>Override to REJECT</span></div>
+            <div class="info-row"><span class="key">S</span> <span>Skip Photo</span></div>
+            <div class="info-row"><span class="key">Z</span> <span>Toggle Zoom</span></div>
+            <div class="info-row"><span class="key">← →</span> <span>Prev / Next (no save)</span></div>
+        </div>
+        
+        <div id="progress">
+            <div class="title">Progress</div>
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+            <div class="info-row">
+                <span id="progress-text">Photo 0 / 0</span>
+                <span>Remaining: <strong id="progress-remaining">0</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-overlay">
+        <div id="modal">
+            <h2>Disagreement Reason</h2>
+            <p>You are overriding <strong id="modal-ai-class"></strong> to <strong id="modal-new-class"></strong>.</p>
+            <div class="reason-grid" id="reason-grid"></div>
+            <textarea id="notes" placeholder="Additional Notes (Optional)..."></textarea>
+            <div class="action-row">
+                <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-submit" onclick="submitFeedback()">Submit (Enter)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allImages = [];
+        let images = []; // Filtered images
+        let currentIndex = 0;
+        let totalStats = { total: 0, completed: 0, remaining: 0 };
+        
+        let zoomLevel = 1;
+        let isDragging = false;
+        let startX, startY, transX = 0, transY = 0;
+        
+        let pendingDecision = null;
+        let selectedReason = null;
+        let reviewStartTime = Date.now();
+        
+        const demotionReasons = ["Closed Eyes", "Bad Expression", "Excessive Noise", "Missed Focus", "Motion Blur", "Foreground Distraction", "Composition Issue", "Exposure Problem", "Multiple Subjects", "Wrong Subject", "Other"];
+        const promotionReasons = ["Strong Emotion", "Peak Action", "Good Expression", "Storytelling Moment", "Important Subject", "Artistic Choice", "Acceptable Noise", "Acceptable Motion Blur", "Better Than AI Estimated", "Recoverable in Editing", "Personal Preference", "Other"];
+        
+        const viewer = document.getElementById('viewer-image');
+        const container = document.getElementById('viewer-container');
+        const svgLayer = document.getElementById('svgLayer');
+        let currentMetadata = null;
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+        }
+
+        async function fetchImages() {
+            const res = await fetch('/api/images');
+            const data = await res.json();
+            allImages = data.images;
+            totalStats.total = data.total;
+            totalStats.completed = data.completed;
+            totalStats.remaining = data.remaining;
+            
+            populateBurstFilter();
+            applyFilters();
+            fetchStats();
+        }
+        
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                if (data.stats && Object.keys(data.stats).length > 0) {
+                    document.getElementById('stat-agree').innerText = data.stats['Agreement Rate (%)'] + "%";
+                    document.getElementById('stat-major').innerText = data.stats['Major Disagreements'];
+                } else {
+                    document.getElementById('stat-agree').innerText = "0%";
+                    document.getElementById('stat-major').innerText = "0";
+                }
+            } catch (e) {
+                console.error("Could not load stats", e);
+            }
+        }
+        
+        function populateBurstFilter() {
+            const select = document.getElementById('filter-burst');
+            // Keep the first option
+            while (select.options.length > 1) { select.remove(1); }
+            
+            const bursts = new Set();
+            allImages.forEach(img => {
+                if (img.duplicate_group_id) bursts.add(img.duplicate_group_id);
+            });
+            
+            Array.from(bursts).sort().forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.innerText = `Burst ${b}`;
+                select.appendChild(opt);
+            });
+        }
+        
+        function applyFilters() {
+            const classFilter = document.getElementById('filter-class').value;
+            const burstFilter = document.getElementById('filter-burst').value;
+            
+            images = allImages.filter(img => {
+                let classMatch = classFilter === 'ALL' || img.classification === classFilter;
+                let burstMatch = burstFilter === 'ALL' || img.duplicate_group_id == burstFilter;
+                return classMatch && burstMatch;
+            });
+            
+            currentIndex = 0;
+            if (images.length > 0) {
+                viewer.style.display = 'block';
+                loadImage(0);
+            } else {
+                document.getElementById('filename').innerText = "No photos match filter.";
+                viewer.style.display = 'none';
+                svgLayer.style.display = 'none';
+                document.getElementById('ai-class').innerText = "---";
+                document.getElementById('ai-confidence').style.display = 'none';
+            }
+            updateProgress();
+        }
+        
+        function toggleInspectorMode() {
+            const isEnabled = document.getElementById('inspector-toggle').checked;
+            document.getElementById('inspector-panel').style.display = isEnabled ? 'block' : 'none';
+            svgLayer.style.display = isEnabled ? 'block' : 'none';
+            if (isEnabled) drawOverlays();
+        }
+
+        function savePrefs() {
+            localStorage.setItem('layer-faces', document.getElementById('layer-faces').checked);
+            localStorage.setItem('layer-eyes', document.getElementById('layer-eyes').checked);
+            localStorage.setItem('layer-subjects', document.getElementById('layer-subjects').checked);
+            localStorage.setItem('inspector-toggle', document.getElementById('inspector-toggle').checked);
+        }
+
+        function drawOverlays() {
+            svgLayer.innerHTML = "";
+            if (!currentMetadata) return;
+            
+            const w = currentMetadata.image.width;
+            const h = currentMetadata.image.height;
+            svgLayer.setAttribute("viewBox", `0 0 ${w} ${h}`);
+            
+            // RENDERING Z-ORDER
+            // 1. Exposure (Future)
+            // 2. Recovery (Future)
+            // 3. Subjects
+            // 4. Pose (Future)
+            // 5. Face Detection
+            // 6. Face Mesh (Future)
+            // 7. Eye State
+            // 8. Focus (Future)
+            
+            // Layer 3: Subjects
+            
+            const layerSubjects = document.getElementById('layer-subjects');
+            if (layerSubjects && layerSubjects.checked && currentMetadata.subjects) {
+                currentMetadata.subjects.forEach(sub => {
+                    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    rect.setAttribute("x", sub.coords[0]);
+                    rect.setAttribute("y", sub.coords[1]);
+                    rect.setAttribute("width", sub.coords[2] - sub.coords[0]);
+                    rect.setAttribute("height", sub.coords[3] - sub.coords[1]);
+                    rect.setAttribute("fill", "none");
+                    rect.setAttribute("stroke", "#ff9800");
+                    rect.setAttribute("stroke-width", "4");
+                    svgLayer.appendChild(rect);
+                });
+            }
+            
+            // Layer 5: Face Detection
+            if (layerFaces && layerFaces.checked && currentMetadata.faces) {
+                currentMetadata.faces.forEach(face => {
+                    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    rect.setAttribute("x", face.coords[0]);
+                    rect.setAttribute("y", face.coords[1]);
+                    rect.setAttribute("width", face.coords[2] - face.coords[0]);
+                    rect.setAttribute("height", face.coords[3] - face.coords[1]);
+                    rect.setAttribute("fill", "none");
+                    rect.setAttribute("stroke", "#00ff00");
+                    rect.setAttribute("stroke-width", "3");
+                    svgLayer.appendChild(rect);
+                });
+            }
+
+            // Layer 7: Eye State
+            const layerEyes = document.getElementById('layer-eyes');
+            if (layerEyes && layerEyes.checked && currentMetadata.faces) {
+                currentMetadata.faces.forEach(face => {
+                    if (face.landmarks) {
+                        face.landmarks.forEach(lm => {
+                            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                            circle.setAttribute("cx", lm.x * w);
+                            circle.setAttribute("cy", lm.y * h);
+                            circle.setAttribute("r", "1.5");
+                            circle.setAttribute("fill", "#ff0000");
+                            svgLayer.appendChild(circle);
+                        });
+                    }
+                });
+            }
+        }
+        
+        async function fetchMetadata(filename) {
+            currentMetadata = null;
+            svgLayer.innerHTML = "";
+            
+            const f = document.getElementById('layer-faces');
+            const e = document.getElementById('layer-eyes');
+            const s = document.getElementById('layer-subjects');
+            
+            // Restore toggles to user preferences from localStorage (default true)
+            f.disabled = true; f.checked = localStorage.getItem('layer-faces') !== 'false';
+            e.disabled = true; e.checked = localStorage.getItem('layer-eyes') !== 'false';
+            s.disabled = true; s.checked = localStorage.getItem('layer-subjects') !== 'false';
+            
+            try {
+                const response = await fetch(`/api/inspector/${filename}`);
+                if (response.ok) {
+                    currentMetadata = await response.json();
+                    
+                    if (currentMetadata) {
+                        if (currentMetadata.faces && currentMetadata.faces.length > 0) {
+                            f.disabled = false;
+                            if (currentMetadata.faces.some(face => face.landmarks)) {
+                                e.disabled = false;
+                            }
+                            
+                            document.getElementById('expression-panel').style.display = 'block';
+                            document.getElementById('expression-none').style.display = 'none';
+                            
+                            const face = currentMetadata.faces[0];
+                            const img = images[currentIndex];
+                            
+                            document.getElementById('expr-eyes').innerText = face.eye_state || 'Unknown';
+                            document.getElementById('expr-type').innerText = face.expression_type || 'Unknown';
+                            
+                            let vis = "Unknown";
+                            if (img.face_visibility_score >= 90) vis = "Full";
+                            else if (img.face_visibility_score >= 70) vis = "Partial Occlusion";
+                            else if (img.face_visibility_score > 0) vis = "Heavy Occlusion";
+                            document.getElementById('expr-vis').innerText = vis;
+                            
+                            let qual = "Unknown";
+                            if (img.face_quality_score >= 90) qual = "Excellent";
+                            else if (img.face_quality_score >= 70) qual = "Good";
+                            else if (img.face_quality_score > 0) qual = "Poor";
+                            document.getElementById('expr-qual').innerText = qual;
+                            
+                        } else {
+                            document.getElementById('expression-panel').style.display = 'none';
+                            document.getElementById('expression-none').style.display = 'block';
+                        }
+                        if (currentMetadata.subjects && currentMetadata.subjects.length > 0) {
+                            s.disabled = false;
+                        }
+                    }
+                    
+                    if (document.getElementById('inspector-toggle').checked) {
+                        drawOverlays();
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load metadata");
+            }
+        }
+        
+        function loadImage(index) {
+            if (index < 0 || index >= images.length) return;
+            currentIndex = index;
+            reviewStartTime = Date.now();
+            const img = images[currentIndex];
+            
+            const folder = img.classification.toLowerCase() + "_preview";
+            viewer.src = `/${folder}/${img.filename}`;
+            resetZoom();
+            
+            document.getElementById('filename').innerText = img.filename;
+            fetchMetadata(img.filename);
+            
+            const aiClass = document.getElementById('ai-class');
+            aiClass.innerText = img.classification;
+            aiClass.className = 'value ' + img.classification.toLowerCase();
+            
+            const confBadge = document.getElementById('ai-confidence');
+            const confRow = document.getElementById('confidence-row');
+            if (img.confidence_score) {
+                confBadge.innerText = `${img.confidence_score.toFixed(1)}%`;
+                confRow.style.display = 'flex';
+                // Color scale for confidence
+                if (img.confidence_score >= 80) confBadge.style.backgroundColor = '#2e7d32'; // High conf
+                else if (img.confidence_score >= 60) confBadge.style.backgroundColor = '#1565c0'; // Med conf
+                else confBadge.style.backgroundColor = '#f57c00'; // Borderline
+            } else {
+                confRow.style.display = 'none';
+            }
+            
+            const editBadge = document.getElementById('ai-editability');
+            const editRow = document.getElementById('editability-row');
+            if (img.editability_score !== undefined && img.editability_score !== null) {
+                editBadge.innerText = `${img.editability_score.toFixed(1)}`;
+                editRow.style.display = 'flex';
+                if (img.editability_score >= 85) editBadge.style.backgroundColor = '#2e7d32'; // High 
+                else if (img.editability_score >= 70) editBadge.style.backgroundColor = '#1565c0'; // Med
+                else editBadge.style.backgroundColor = '#d32f2f'; // Poor
+            } else {
+                editRow.style.display = 'none';
+            }
+            
+            document.getElementById('ai-proc-time').innerText = img.processing_time_ms ? img.processing_time_ms.toFixed(1) : "N/A";
+            
+            updateProgress();
+        }
+        
+        function updateProgress() {
+            document.getElementById('progress-text').innerText = `Photo ${currentIndex + 1} / ${images.length} (Filtered)`;
+            document.getElementById('progress-remaining').innerText = totalStats.remaining;
+            
+            const percent = totalStats.total > 0 ? (totalStats.completed / totalStats.total) * 100 : 0;
+            document.getElementById('progress-fill').style.width = `${percent}%`;
+        }
+
+        async function sendFeedback(decision, reason = "", notes = "", overrideDir = "Agreement") {
+            const img = images[currentIndex];
+            const reviewTimeMs = Date.now() - reviewStartTime;
+            
+            const payload = {
+                filename: img.filename,
+                ai_classification: img.classification,
+                photographer_decision: decision,
+                override_direction: overrideDir,
+                reason_category: reason,
+                additional_notes: notes,
+                classification_score: img.classification_score || 0.0,
+                review_time_ms: reviewTimeMs
+            };
+            
+            await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            totalStats.completed++;
+            totalStats.remaining--;
+            
+            // Remove from main array and filtered array
+            const realIndex = allImages.findIndex(i => i.filename === img.filename);
+            if (realIndex > -1) allImages.splice(realIndex, 1);
+            images.splice(currentIndex, 1);
+            
+            if (currentIndex >= images.length) currentIndex = 0;
+            
+            fetchStats(); // Update live stats
+            
+            if (images.length > 0) {
+                loadImage(currentIndex);
+            } else {
+                fetchImages(); // Refresh if empty
+            }
+        }
+        
+        // Modal Logic
+        function openModal(decision) {
+            const aiClass = images[currentIndex].classification;
+            if (decision === aiClass) {
+                sendFeedback(decision, "", "", "Agreement");
+                return;
+            }
+            
+            const ranks = {"REJECT": 1, "REVIEW": 2, "KEEP": 3};
+            const overrideDir = ranks[decision] > ranks[aiClass] ? "Promotion" : "Demotion";
+            
+            pendingDecision = decision;
+            selectedReason = null;
+            document.getElementById('modal-ai-class').innerText = aiClass;
+            document.getElementById('modal-new-class').innerText = decision;
+            document.getElementById('notes').value = "";
+            
+            const grid = document.getElementById('reason-grid');
+            grid.innerHTML = "";
+            const reasons = overrideDir === "Promotion" ? promotionReasons : demotionReasons;
+            reasons.forEach(r => {
+                const btn = document.createElement('button');
+                btn.className = 'reason-btn';
+                btn.innerText = r;
+                btn.onclick = (e) => {
+                    document.querySelectorAll('.reason-btn').forEach(b => b.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                    selectedReason = r;
+                };
+                grid.appendChild(btn);
+            });
+            
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+        
+        function closeModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+            pendingDecision = null;
+        }
+        
+        function submitFeedback() {
+            if (!pendingDecision) return;
+            if (!selectedReason && pendingDecision !== 'SKIPPED') {
+                alert("Please select a reason category.");
+                return;
+            }
+            const aiClass = images[currentIndex].classification;
+            const ranks = {"REJECT": 1, "REVIEW": 2, "KEEP": 3};
+            const overrideDir = pendingDecision === 'SKIPPED' ? "Skipped" : 
+                                (ranks[pendingDecision] > ranks[aiClass] ? "Promotion" : "Demotion");
+                                
+            const notes = document.getElementById('notes').value;
+            sendFeedback(pendingDecision, selectedReason, notes, overrideDir);
+            closeModal();
+        }
+
+        // Zoom Logic
+        function setTransform() { viewer.style.transform = `translate(${transX}px, ${transY}px) scale(${zoomLevel})`; }
+        function resetZoom() { zoomLevel = 1; transX = 0; transY = 0; setTransform(); }
+        
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomAmount = 0.1;
+            if (e.deltaY < 0) zoomLevel += zoomAmount;
+            else zoomLevel -= zoomAmount;
+            if (zoomLevel < 1) resetZoom();
+            else setTransform();
+        });
+        
+        container.addEventListener('mousedown', (e) => {
+            if (zoomLevel > 1) {
+                isDragging = true;
+                startX = e.clientX - transX;
+                startY = e.clientY - transY;
+                container.style.cursor = 'grabbing';
+            }
+        });
+        
+        window.addEventListener('mouseup', () => { isDragging = false; container.style.cursor = 'grab'; });
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            transX = e.clientX - startX;
+            transY = e.clientY - startY;
+            setTransform();
+        });
+
+        // Keyboard Logic
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('modal-overlay').style.display === 'flex') {
+                if (e.key === 'Escape') closeModal();
+                if (e.key === 'Enter') submitFeedback();
+                return;
+            }
+            
+            if (images.length === 0) return;
+            
+            const key = e.key.toUpperCase();
+            if (key === 'A') sendFeedback(images[currentIndex].classification, "", "", "Agreement");
+            else if (key === 'K') openModal('KEEP');
+            else if (key === 'V') openModal('REVIEW');
+            else if (key === 'R') openModal('REJECT');
+            else if (key === 'S') sendFeedback('SKIPPED', "", "", "Skipped");
+            else if (key === 'Z') {
+                if (zoomLevel > 1) resetZoom();
+                else { zoomLevel = 2; setTransform(); }
+            } else if (e.key === 'ArrowRight') {
+                if (currentIndex < images.length - 1) loadImage(currentIndex + 1);
+            } else if (e.key === 'ArrowLeft') {
+                if (currentIndex > 0) loadImage(currentIndex - 1);
+            }
+        });
+
+        // Init
+        fetchImages();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggle = document.getElementById('inspector-toggle');
+            if (localStorage.getItem('inspector-toggle') === 'true') {
+                toggle.checked = true;
+                document.getElementById('inspector-panel').style.display = 'block';
+                svgLayer.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

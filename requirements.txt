@@ -1,0 +1,14 @@
+rawpy>=0.23.2
+Pillow>=10.2.0
+opencv-python>=4.9.0.80
+ultralytics>=8.1.0
+ImageHash>=4.3.1
+pydantic>=2.5.3
+pandas>=2.1.4
+exifread>=3.0.0
+matplotlib>=3.8.2
+seaborn>=0.13.1
+PyYAML>=6.0.1
+fastapi>=0.111.0
+uvicorn>=0.30.1
+mediapipe>=0.10.9

@@ -1,0 +1,14 @@
+modules:
+  confidence_engine: true
+  eye_state: true
+  semantic_composition: false
+
+confidence:
+  midpoint_keep: 60
+  midpoint_reject: 40
+  steepness: 0.11
+  burst_cap: 55
+
+export:
+  mode: hardlink
+  prefix_rank: false

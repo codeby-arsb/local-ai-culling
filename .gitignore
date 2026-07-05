@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual Environments
+.venv/
+venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# Application Output and Generated Artifacts
+output/*
+!output/.gitkeep
+outputs/
+output_baseline/
+output_optimized/
+cache/*
+!cache/.gitkeep
+.cache/
+
+# Datasets
+test_datasets/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# Temporary feedback and metadata
+photographer_feedback.csv
+feedback_summary.csv
+metadata/
+
+# Models
+*.pt
+*.task
