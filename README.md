@@ -16,23 +16,25 @@ Because it runs 100% locally on your own hardware, your photographs are never up
 - **Hardlink Export Engine**: Instantly creates organized output folders using zero-byte storage hardlinks. The original files are never duplicated or modified.
 - **Explainable Decisions**: Transparent scoring. No black-box AI magic—you can see exactly why a photo was rejected.
 
----
+## Screenshot Gallery
 
-## Animated Demo
+### Dashboard Overview
+![Dashboard Overview](docs/screenshots/dashboard_overview.png)
 
-> **[PLACEHOLDER: Animated GIF Demo]**
-> *(Recording Guide: Capture a short GIF (15-20 seconds) demonstrating the following flow: 1. Running the pipeline via terminal. 2. Launching the dashboard. 3. Navigating a burst sequence of images. 4. Toggling Scene Intelligence overlays. 5. Reviewing the transparent scoring on a rejected photo. 6. Showing the final hardlinked export folders in the file explorer.)*
+### Scene Intelligence
+![Scene Intelligence](docs/screenshots/scene_intelligence.png)
 
-## Screenshots
+### KEEP Folder View
+![Keep View](docs/screenshots/keep_view.png)
 
-> **[PLACEHOLDER: Main Dashboard Screenshot]**
-> *(Capture: The main overview page showing the KEEP/REVIEW/REJECT distribution and a contact sheet of images.)*
+### REVIEW Folder View
+![Review View](docs/screenshots/review_view.png)
 
-> **[PLACEHOLDER: Scene Intelligence Screenshot]**
-> *(Capture: The detail view of a single image showing bounding boxes for faces and subjects, with the technical metrics sidebar visible.)*
+### REJECT Folder View
+![Reject View](docs/screenshots/reject_view.png)
 
-> **[PLACEHOLDER: Export Folders Screenshot]**
-> *(Capture: A file explorer view showing the original `test_datasets` alongside the `output/KEEP`, `output/REVIEW`, and `output/REJECT` directories.)*
+### Hardlinked Export Structure
+![Export Structure](docs/screenshots/export_structure.png)
 
 ---
 
