@@ -61,14 +61,14 @@ graph TD
     F --> G[Export Engine]
     G --> H[Feedback Dashboard]
     
-    subgraph Technical Analysis
+    subgraph TA [Technical Analysis]
     B1(Blur & Focus)
     B2(Composition)
     B3(Subject Quality)
     B4(Face & Eye State)
     B5(Editability Engine)
     end
-    B -.-> Technical Analysis
+    B -.-> TA
 ```
 
 ### Session Management
