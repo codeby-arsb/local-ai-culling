@@ -41,7 +41,6 @@ output/
 ├── REVIEW/
 ├── REJECT/
 ├── final_export.csv
-├── classification.csv
 └── session.json
 ```
 

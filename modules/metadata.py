@@ -11,7 +11,7 @@ def export_metadata(records: List[ImageRecord], output_dir: str):
     Exports all available spatial data for an image to a side-car JSON file.
     This powers the Scene Intelligence overlays in the frontend dashboard.
     """
-    metadata_dir = os.path.join(output_dir, "metadata")
+    metadata_dir = os.path.join(output_dir, ".internal", "metadata")
     os.makedirs(metadata_dir, exist_ok=True)
     
     for record in records:

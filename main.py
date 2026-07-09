@@ -60,7 +60,7 @@ def main():
     output_path.mkdir(parents=True, exist_ok=True)
     
     # Create the cache directory for the extracted preview JPEGs
-    cache_dir = output_path / "previews"
+    cache_dir = output_path / ".internal" / "previews"
     cache_dir.mkdir(parents=True, exist_ok=True)
     
     logger.info(f"Starting photo analysis")

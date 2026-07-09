@@ -46,7 +46,7 @@ def get_images():
         return JSONResponse({"error": "Output dir not set"}, status_code=500)
         
     export_csv = Path(_OUTPUT_DIR) / "final_export.csv"
-    feedback_csv = Path(_OUTPUT_DIR) / "photographer_feedback.csv"
+    feedback_csv = Path(_OUTPUT_DIR) / ".internal" / "photographer_feedback.csv"
     
     if not export_csv.exists():
         return JSONResponse({"error": "final_export.csv not found"}, status_code=404)
@@ -92,7 +92,8 @@ def get_images():
 @app.post("/api/feedback")
 def post_feedback(feedback: FeedbackRecord):
     global _OUTPUT_DIR
-    feedback_csv = Path(_OUTPUT_DIR) / "photographer_feedback.csv"
+    feedback_csv = Path(_OUTPUT_DIR) / ".internal" / "photographer_feedback.csv"
+    feedback_csv.parent.mkdir(parents=True, exist_ok=True)
     
     severity = get_severity(feedback.ai_classification, feedback.photographer_decision)
     
@@ -131,8 +132,8 @@ def post_feedback(feedback: FeedbackRecord):
 
 def update_summary():
     global _OUTPUT_DIR
-    feedback_csv = Path(_OUTPUT_DIR) / "photographer_feedback.csv"
-    summary_csv = Path(_OUTPUT_DIR) / "feedback_summary.csv"
+    feedback_csv = Path(_OUTPUT_DIR) / ".internal" / "photographer_feedback.csv"
+    summary_csv = Path(_OUTPUT_DIR) / ".internal" / "feedback_summary.csv"
     
     if not feedback_csv.exists():
         return
@@ -182,7 +183,7 @@ def get_stats():
     if not _OUTPUT_DIR:
         return JSONResponse({"error": "Output dir not set"}, status_code=500)
         
-    summary_csv = Path(_OUTPUT_DIR) / "feedback_summary.csv"
+    summary_csv = Path(_OUTPUT_DIR) / ".internal" / "feedback_summary.csv"
     if not summary_csv.exists():
         return {"stats": {}}
         
@@ -195,26 +196,25 @@ def get_inspector_metadata(filename: str):
     if not _OUTPUT_DIR:
         return JSONResponse({"error": "Output dir not set"}, status_code=500)
         
-    metadata_json = Path(_OUTPUT_DIR) / "metadata" / f"{filename}.json"
+    metadata_json = Path(_OUTPUT_DIR) / ".internal" / "metadata" / f"{filename}.json"
     if not metadata_json.exists():
         return JSONResponse({"error": "Metadata not found for this image"}, status_code=404)
         
     try:
         with open(metadata_json, "r") as f:
-            data = json.load(f)
-        return data
+            return JSONResponse(json.load(f))
     except Exception as e:
         logger.error(f"Failed to read metadata for {filename}: {e}")
         return JSONResponse({"error": "Failed to read metadata"}, status_code=500)
 
-@app.get("/api/image/{filename}")
+@app.get("/api/images/{filename}")
 def serve_image(filename: str):
-    global _OUTPUT_DIR
-    if not _OUTPUT_DIR:
-        return JSONResponse({"error": "Output dir not set"}, status_code=500)
-        
+    """
+    Serve the image directly. Tries to use the lightweight previews if available,
+    otherwise falls back to the original source path.
+    """
     # 1. Try lightweight previews
-    preview_path = Path(_OUTPUT_DIR) / "previews" / filename
+    preview_path = Path(_OUTPUT_DIR) / ".internal" / "previews" / filename
     if preview_path.exists():
         return FileResponse(preview_path)
         
@@ -242,7 +242,7 @@ def serve_index():
 
 def manage_session(output_dir: Path):
     session_file = output_dir / "session.json"
-    feedback_session_file = output_dir / "feedback_session.json"
+    feedback_session_file = output_dir / ".internal" / "feedback_session.json"
     
     if not session_file.exists():
         logger.warning("No session.json found. Cannot perform session management.")
