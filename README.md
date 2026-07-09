@@ -25,16 +25,39 @@ Because it runs 100% locally on your own hardware, your photographs are never up
 ![Scene Intelligence](docs/screenshots/scene_intelligence.png)
 
 ### KEEP Folder View
-![Keep View](docs/screenshots/keep_view.png)
+```text
+output/KEEP/
+├── ARSB Sinchana25 (310 of 1819).jpg
+├── ARSB Sinchana25 (325 of 1819).jpg
+...
+```
 
 ### REVIEW Folder View
-![Review View](docs/screenshots/review_view.png)
+```text
+output/REVIEW/
+├── ARSB Sinchana25 (330 of 1819).jpg
+├── ARSB Sinchana25 (331 of 1819).jpg
+...
+```
 
 ### REJECT Folder View
-![Reject View](docs/screenshots/reject_view.png)
+```text
+output/REJECT/
+├── ARSB Sinchana25 (358 of 1819).jpg
+├── ARSB Sinchana25 (359 of 1819).jpg
+...
+```
 
 ### Hardlinked Export Structure
-![Export Structure](docs/screenshots/export_structure.png)
+```text
+output/
+├── KEEP/
+├── REVIEW/
+├── REJECT/
+├── final_export.csv
+├── classification.csv
+└── session.json
+```
 
 ---
 
