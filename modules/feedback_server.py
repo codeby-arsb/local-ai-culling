@@ -6,7 +6,7 @@ from datetime import datetime
 import pandas as pd
 
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uvicorn
@@ -66,9 +66,9 @@ def get_images():
     # Filter remaining
     df_remaining = df[~df["filename"].isin(reviewed_set)]
     
-    # Convert to list of dicts
-    # Replace NaNs with None for JSON serialization
-    images = df_remaining.where(pd.notnull(df_remaining), None).to_dict(orient="records")
+    # Convert to list of dicts safely handling NaNs
+    import json
+    images = json.loads(df_remaining.to_json(orient="records"))
     
     return {
         "images": images,
@@ -194,6 +194,31 @@ def get_inspector_metadata(filename: str):
     except Exception as e:
         logger.error(f"Failed to read metadata for {filename}: {e}")
         return JSONResponse({"error": "Failed to read metadata"}, status_code=500)
+
+@app.get("/api/image/{filename}")
+def serve_image(filename: str):
+    global _OUTPUT_DIR
+    if not _OUTPUT_DIR:
+        return JSONResponse({"error": "Output dir not set"}, status_code=500)
+        
+    # 1. Try lightweight previews
+    preview_path = Path(_OUTPUT_DIR) / "previews" / filename
+    if preview_path.exists():
+        return FileResponse(preview_path)
+        
+    # 2. Try visual export folders (if --profile was used)
+    for folder in ["keep_preview", "review_preview", "reject_preview"]:
+        path = Path(_OUTPUT_DIR) / folder / filename
+        if path.exists():
+            return FileResponse(path)
+            
+    # 3. Try hardlinked final export folders
+    for folder in ["KEEP", "REVIEW", "REJECT"]:
+        path = Path(_OUTPUT_DIR) / folder / filename
+        if path.exists():
+            return FileResponse(path)
+            
+    return JSONResponse({"error": "Image not found"}, status_code=404)
 
 @app.get("/")
 def serve_index():

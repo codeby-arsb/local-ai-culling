@@ -438,8 +438,7 @@
             reviewStartTime = Date.now();
             const img = images[currentIndex];
             
-            const folder = img.classification.toLowerCase() + "_preview";
-            viewer.src = `/${folder}/${img.filename}`;
+            viewer.src = `/api/image/${img.filename}`;
             resetZoom();
             
             document.getElementById('filename').innerText = img.filename;
