@@ -31,4 +31,4 @@ if __name__ == "__main__":
         sys.exit(1)
         
     print("Starting Feedback Dashboard...")
-    run_server(output_dir=output_dir, port=8000)
+    run_server(output_dir=output_dir, port=5000)
