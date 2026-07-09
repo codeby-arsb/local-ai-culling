@@ -62,6 +62,9 @@ graph TD
     B -.-> Technical Analysis
 ```
 
+### Session Management
+The dashboard includes an automated Session Management engine. When the pipeline processes a new directory, it generates a deterministic `session.json` based on the dataset name and filenames. When the feedback dashboard launches, it compares this session against previous feedback files. If it detects a new photography assignment, it safely archives the older feedback to prevent data collisions, ensuring that photographers can seamlessly review multiple consecutive shoots without manual cleanup.
+
 ## Installation
 
 ### Prerequisites

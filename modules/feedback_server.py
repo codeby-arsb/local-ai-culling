@@ -45,13 +45,25 @@ def get_images():
     if not _OUTPUT_DIR:
         return JSONResponse({"error": "Output dir not set"}, status_code=500)
         
-    validation_csv = Path(_OUTPUT_DIR) / "manual_validation.csv"
+    export_csv = Path(_OUTPUT_DIR) / "final_export.csv"
     feedback_csv = Path(_OUTPUT_DIR) / "photographer_feedback.csv"
     
-    if not validation_csv.exists():
-        return JSONResponse({"error": "manual_validation.csv not found"}, status_code=404)
+    if not export_csv.exists():
+        return JSONResponse({"error": "final_export.csv not found"}, status_code=404)
         
-    df = pd.read_csv(validation_csv)
+    df = pd.read_csv(export_csv)
+    
+    # Map final_export.csv columns to internal frontend keys
+    column_mapping = {
+        "Filename": "filename",
+        "Decision": "classification",
+        "Classification Score": "classification_score",
+        "Confidence": "confidence_score",
+        "Editability": "editability_score",
+        "Duplicate Group": "duplicate_group_id",
+        "Best Frame": "is_best_frame"
+    }
+    df = df.rename(columns=lambda c: column_mapping.get(c, c))
     
     # Filter out already reviewed
     reviewed_set = set()
@@ -228,9 +240,74 @@ def serve_index():
         return HTMLResponse(content=html_path.read_text(encoding='utf-8'))
     return HTMLResponse(content="<h1>Templates not found</h1>", status_code=404)
 
+def manage_session(output_dir: Path):
+    session_file = output_dir / "session.json"
+    feedback_session_file = output_dir / "feedback_session.json"
+    
+    if not session_file.exists():
+        logger.warning("No session.json found. Cannot perform session management.")
+        return
+        
+    try:
+        with open(session_file, "r", encoding="utf-8") as f:
+            current_session = json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to read session.json: {e}")
+        return
+        
+    feedback_csv = output_dir / "photographer_feedback.csv"
+    summary_csv = output_dir / "feedback_summary.csv"
+    
+    needs_archive = False
+    old_id = "legacy"
+    dataset_name = "unknown"
+    
+    if feedback_session_file.exists():
+        try:
+            with open(feedback_session_file, "r", encoding="utf-8") as f:
+                old_session = json.load(f)
+                
+            if old_session.get("dataset_id") != current_session.get("dataset_id"):
+                needs_archive = True
+                old_id = old_session.get("dataset_id", "unknown")
+                dataset_name = old_session.get("dataset_name", "unknown")
+        except Exception as e:
+            logger.error(f"Failed to read feedback_session.json: {e}")
+            needs_archive = True
+    elif feedback_csv.exists():
+        # Transitioning from legacy system
+        needs_archive = True
+        
+    if needs_archive:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        logger.info(f"New dataset detected. Archiving old session: {dataset_name} ({old_id})")
+        
+        try:
+            if feedback_csv.exists():
+                archive_name = f"photographer_feedback_{dataset_name}_{timestamp}.csv"
+                feedback_csv.rename(output_dir / archive_name)
+                logger.info(f"Archived feedback to {archive_name}")
+                
+            if summary_csv.exists():
+                archive_name = f"feedback_summary_{dataset_name}_{timestamp}.csv"
+                summary_csv.rename(output_dir / archive_name)
+                logger.info(f"Archived summary to {archive_name}")
+        except Exception as e:
+            logger.error(f"Failed during session archiving: {e}")
+            
+    # Save current session as the active feedback session
+    try:
+        with open(feedback_session_file, "w", encoding="utf-8") as f:
+            json.dump(current_session, f, indent=4)
+    except Exception as e:
+        logger.error(f"Failed to write feedback_session.json: {e}")
+
 def run_server(output_dir: Path, port: int = 8000):
     global _OUTPUT_DIR
     _OUTPUT_DIR = output_dir
+    
+    # 1. Manage session (archive old data if dataset changed)
+    manage_session(output_dir)
     
     # Mount previews statically from visual export folders
     for folder in ["keep_preview", "review_preview", "reject_preview"]:

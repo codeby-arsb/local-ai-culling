@@ -139,4 +139,30 @@ def run_final_export(records: List[ImageRecord], output_dir: Path):
     with open(readme_path, "w", encoding="utf-8") as f:
         f.write(readme_content)
         
+    # 7. Generate Session JSON
+    import hashlib
+    import json
+    from datetime import datetime
+    
+    dataset_name = "unknown_dataset"
+    filenames = sorted([r.filename for r in records if r.filename])
+    if records and records[0].original_path:
+        dataset_name = Path(records[0].original_path).parent.name
+        
+    hash_input = dataset_name + "".join(filenames)
+    dataset_id = hashlib.sha256(hash_input.encode('utf-8')).hexdigest()[:16]
+    
+    session_data = {
+        "dataset_name": dataset_name,
+        "dataset_id": dataset_id,
+        "created_at": datetime.now().isoformat(),
+        "image_count": len(filenames)
+    }
+    
+    session_path = output_dir / "session.json"
+    with open(session_path, "w", encoding="utf-8") as f:
+        json.dump(session_data, f, indent=4)
+        
+    logger.info(f"Generated Session ID: {dataset_id} for dataset '{dataset_name}'")
+        
     logger.info("Final Export Engine complete.")
