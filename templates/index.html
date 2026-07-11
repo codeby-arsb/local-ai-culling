@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -127,10 +127,10 @@
             
             <div class="title" style="color: #007acc; margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">Expression Intelligence</div>
             <div id="expression-panel" style="font-size: 0.9em; display: none;">
-                <div style="margin-bottom: 4px;">👁 Eyes: <strong id="expr-eyes">Unknown</strong></div>
-                <div style="margin-bottom: 4px;">😊 Expression: <strong id="expr-type">Unknown</strong></div>
-                <div style="margin-bottom: 4px;">👤 Visibility: <strong id="expr-vis">Unknown</strong></div>
-                <div style="margin-bottom: 4px;">📷 Face Quality: <strong id="expr-qual">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">ðŸ‘ Eyes: <strong id="expr-eyes">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">ðŸ˜Š Expression: <strong id="expr-type">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">ðŸ‘¤ Visibility: <strong id="expr-vis">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">ðŸ“· Face Quality: <strong id="expr-qual">Unknown</strong></div>
             </div>
             <div id="expression-none" style="font-size: 0.9em; color: #777;">No face detected.</div>
         </div>
@@ -163,7 +163,7 @@
             <div class="info-row"><span class="key">R</span> <span>Override to REJECT</span></div>
             <div class="info-row"><span class="key">S</span> <span>Skip Photo</span></div>
             <div class="info-row"><span class="key">Z</span> <span>Toggle Zoom</span></div>
-            <div class="info-row"><span class="key">← →</span> <span>Prev / Next (no save)</span></div>
+            <div class="info-row"><span class="key">â† â†’</span> <span>Prev / Next (no save)</span></div>
         </div>
         
         <div id="progress">
@@ -190,23 +190,22 @@
     </div>
 
     <script>
+        
         let allImages = [];
-        let images = []; // Filtered images
+        let images = [];
         let currentIndex = 0;
-        let totalStats = { total: 0, completed: 0, remaining: 0 };
         
-        let zoomLevel = 1;
-        let isDragging = false;
-        let startX, startY, transX = 0, transY = 0;
-        
+        let viewMode = 'single'; // single, xlarge, large, medium, small
         let pendingDecision = null;
         let selectedReason = null;
+
         let reviewStartTime = Date.now();
         
         const demotionReasons = ["Closed Eyes", "Bad Expression", "Excessive Noise", "Missed Focus", "Motion Blur", "Foreground Distraction", "Composition Issue", "Exposure Problem", "Multiple Subjects", "Wrong Subject", "Other"];
         const promotionReasons = ["Strong Emotion", "Peak Action", "Good Expression", "Storytelling Moment", "Important Subject", "Artistic Choice", "Acceptable Noise", "Acceptable Motion Blur", "Better Than AI Estimated", "Recoverable in Editing", "Personal Preference", "Other"];
         
-        const viewer = document.getElementById('viewer-image');
+        const viewer = document.getElementById('transform-wrapper');
+        const viewerImage = document.getElementById('viewer-image');
         const container = document.getElementById('viewer-container');
         const svgLayer = document.getElementById('svgLayer');
         let currentMetadata = null;
@@ -228,6 +227,136 @@
             fetchStats();
         }
         
+        
+        function changeViewMode() {
+            viewMode = document.getElementById('view-mode').value;
+            if (viewMode === 'single') {
+                openInspector();
+            } else {
+                closeInspector();
+                renderBrowserGrid();
+            }
+        }
+        
+        function updateBrowserStats() {
+            if (!totalStats) return;
+            const keep = allImages.filter(i => i.classification === 'KEEP').length;
+            const review = allImages.filter(i => i.classification === 'REVIEW').length;
+            const reject = allImages.filter(i => i.classification === 'REJECT').length;
+            document.getElementById('browser-stats').innerHTML = 
+                `${allImages.length} Images | <span style="color:#50cd32">KEEP: ${keep}</span> | <span style="color:#ffd700">REVIEW: ${review}</span> | <span style="color:#dc143c">REJECT: ${reject}</span>`;
+        }
+        
+        function renderBrowserGrid() {
+            const grid = document.getElementById('thumbnail-grid');
+            grid.innerHTML = '';
+            
+            let minWidth = '150px';
+            if (viewMode === 'xlarge') minWidth = '400px';
+            else if (viewMode === 'large') minWidth = '250px';
+            else if (viewMode === 'medium') minWidth = '150px';
+            else if (viewMode === 'small') minWidth = '100px';
+            
+            grid.style.gridTemplateColumns = `repeat(auto-fill, minmax(${minWidth}, 1fr))`;
+            
+            images.forEach((img, idx) => {
+                const div = document.createElement('div');
+                div.className = 'thumb-item' + (idx === currentIndex ? ' selected' : '');
+                div.id = 'thumb-' + idx;
+                
+                const imgEl = document.createElement('img');
+                imgEl.src = `/api/images/${img.filename}`;
+                imgEl.loading = 'lazy';
+                
+                div.appendChild(imgEl);
+                
+                div.onclick = () => selectThumbnail(idx);
+                div.ondblclick = () => { selectThumbnail(idx); document.getElementById('view-mode').value = 'single'; changeViewMode(); };
+                
+                grid.appendChild(div);
+            });
+            updateBrowserStats();
+            scrollToSelectedThumbnail();
+        }
+        
+        function selectThumbnail(index) {
+            if (index < 0 || index >= images.length) return;
+            const oldThumb = document.getElementById('thumb-' + currentIndex);
+            if (oldThumb) oldThumb.classList.remove('selected');
+            
+            currentIndex = index;
+            
+            const newThumb = document.getElementById('thumb-' + currentIndex);
+            if (newThumb) newThumb.classList.add('selected');
+            scrollToSelectedThumbnail();
+        }
+        
+        function scrollToSelectedThumbnail() {
+            if (viewMode === 'single') return;
+            const thumb = document.getElementById('thumb-' + currentIndex);
+            if (thumb) {
+                thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        
+        function openInspector() {
+            document.getElementById('browser-container').style.display = 'none';
+            document.getElementById('viewer-container').style.display = 'flex';
+            loadImage(currentIndex);
+        }
+        
+        function closeInspector() {
+            document.getElementById('viewer-container').style.display = 'none';
+            document.getElementById('browser-container').style.display = 'flex';
+        }
+        
+        function updateBurstPanel() {
+            const panel = document.getElementById('burst-panel');
+            const strip = document.getElementById('burst-strip');
+            const title = document.getElementById('burst-title');
+            strip.innerHTML = '';
+            
+            const currentImg = images[currentIndex];
+            if (!currentImg || !currentImg.duplicate_group_id) {
+                panel.style.display = 'none';
+                return;
+            }
+            
+            const burstImages = allImages.filter(i => i.duplicate_group_id === currentImg.duplicate_group_id);
+            if (burstImages.length <= 1) {
+                panel.style.display = 'none';
+                return;
+            }
+            
+            title.innerText = `Burst ${currentImg.duplicate_group_id} (${burstImages.length} Images)`;
+            panel.style.display = 'flex';
+            
+            burstImages.forEach(bImg => {
+                const div = document.createElement('div');
+                div.className = 'burst-thumb' + (bImg.is_best_frame ? ' winner' : '');
+                
+                // If it's the current image, give it a blue border
+                if (bImg.filename === currentImg.filename) {
+                    div.style.borderColor = '#007acc';
+                }
+                
+                const imgEl = document.createElement('img');
+                imgEl.src = `/api/images/${bImg.filename}`;
+                imgEl.loading = 'lazy';
+                
+                div.appendChild(imgEl);
+                
+                div.onclick = () => {
+                    const targetIdx = images.findIndex(i => i.filename === bImg.filename);
+                    if (targetIdx !== -1) {
+                        loadImage(targetIdx);
+                    }
+                };
+                
+                strip.appendChild(div);
+            });
+        }
+
         async function fetchStats() {
             try {
                 const res = await fetch('/api/stats');
@@ -438,7 +567,8 @@
             reviewStartTime = Date.now();
             const img = images[currentIndex];
             
-            viewer.src = `/api/image/${img.filename}`;
+            viewerImage.src = `/api/images/${img.filename}`;
+            updateBurstPanel();
             resetZoom();
             
             document.getElementById('filename').innerText = img.filename;
@@ -518,7 +648,8 @@
             fetchStats(); // Update live stats
             
             if (images.length > 0) {
-                loadImage(currentIndex);
+                if (viewMode === 'single') loadImage(currentIndex);
+                else renderBrowserGrid();
             } else {
                 fetchImages(); // Refresh if empty
             }
@@ -621,6 +752,27 @@
             if (images.length === 0) return;
             
             const key = e.key.toUpperCase();
+            
+            if (viewMode !== 'single') {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    if (currentIndex < images.length - 1) selectThumbnail(currentIndex + 1);
+                    e.preventDefault();
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    if (currentIndex > 0) selectThumbnail(currentIndex - 1);
+                    e.preventDefault();
+                } else if (e.key === 'Enter') {
+                    document.getElementById('view-mode').value = 'single';
+                    changeViewMode();
+                }
+                return;
+            }
+            
+            if (e.key === 'Escape' && viewMode === 'single') {
+                document.getElementById('view-mode').value = 'medium'; // default back to medium or previous
+                changeViewMode();
+                return;
+            }
+            
             if (key === 'A') sendFeedback(images[currentIndex].classification, "", "", "Agreement");
             else if (key === 'K') openModal('KEEP');
             else if (key === 'V') openModal('REVIEW');
