@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -225,6 +225,9 @@
             populateBurstFilter();
             applyFilters();
             fetchStats();
+            
+            // Ensure the correct container is visible on startup
+            changeViewMode();
         }
         
         
@@ -403,14 +406,21 @@
             
             currentIndex = 0;
             if (images.length > 0) {
-                viewer.style.display = 'block';
-                loadImage(0);
+                viewer.style.display = 'flex';
+                if (viewMode === 'single') {
+                    loadImage(0);
+                    document.getElementById('viewer-container').style.display = 'flex';
+                } else {
+                    renderBrowserGrid();
+                    document.getElementById('browser-container').style.display = 'flex';
+                }
             } else {
                 document.getElementById('filename').innerText = "No photos match filter.";
                 viewer.style.display = 'none';
                 svgLayer.style.display = 'none';
                 document.getElementById('ai-class').innerText = "---";
                 document.getElementById('ai-confidence').style.display = 'none';
+                if (viewMode !== 'single') renderBrowserGrid();
             }
             updateProgress();
         }
