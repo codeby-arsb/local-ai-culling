@@ -726,6 +726,11 @@
                 if (response.ok) {
                     currentMetadata = await response.json();
                     
+                    // Safely upgrade to full resolution original image if the user hasn't navigated away
+                    if (viewMode === 'single' && images[currentIndex] && images[currentIndex].filename === filename) {
+                        document.getElementById('viewer-image').src = `/api/images/${filename}?mode=original`;
+                    }
+                    
                     if (currentMetadata) {
                         if (currentMetadata.faces && currentMetadata.faces.length > 0) {
                             f.disabled = false;
@@ -779,8 +784,7 @@
             reviewStartTime = Date.now();
             const img = images[currentIndex];
             
-            // Clear previous image to avoid flickering old content while loading
-            viewerImage.removeAttribute('src');
+            // Load preview immediately (cached from browser grid) for instant feedback
             viewerImage.src = `/api/images/${img.filename}?mode=preview`;
             
             updateBurstPanel();
