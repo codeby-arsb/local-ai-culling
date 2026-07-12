@@ -486,8 +486,21 @@
             
             let currentIdx = select.selectedIndex;
             if (currentIdx === 0) {
-                // If currently on ALL, jump to first or last burst
-                currentIdx = direction > 0 ? 1 : select.options.length - 1;
+                // If currently on ALL, try to find the burst of the current image
+                const currentImg = images[currentIndex];
+                if (currentImg && currentImg.duplicate_group_id) {
+                    for (let i = 1; i < select.options.length; i++) {
+                        if (select.options[i].value == currentImg.duplicate_group_id) {
+                            currentIdx = i;
+                            break;
+                        }
+                    }
+                }
+                if (currentIdx === 0) {
+                    currentIdx = direction > 0 ? 1 : select.options.length - 1;
+                } else {
+                    currentIdx += direction;
+                }
             } else {
                 currentIdx += direction;
                 if (currentIdx < 1) currentIdx = select.options.length - 1;
@@ -766,7 +779,10 @@
             reviewStartTime = Date.now();
             const img = images[currentIndex];
             
+            // Clear previous image to avoid flickering old content while loading
+            viewerImage.removeAttribute('src');
             viewerImage.src = `/api/images/${img.filename}?mode=preview`;
+            
             updateBurstPanel();
             resetZoom();
             
