@@ -25,7 +25,7 @@
         .thumb-item img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .thumb-item.selected { border-color: #007acc; box-shadow: 0 0 10px rgba(0,122,204,0.5); }
         
-        #transform-wrapper { position: relative; width: 100%; height: 100%; transform-origin: top left; }
+        #transform-wrapper { position: relative; width: 100%; height: 100%; transform-origin: 0 0; }
         
         #burst-panel { height: 120px; background: #1a1a1a; border-top: 1px solid #333; display: none; flex-direction: column; }
         body.light-theme #burst-panel { background: #e0e0e0; border-top-color: #ccc; }
@@ -38,7 +38,7 @@
         .burst-thumb.winner::after { content: '🟢'; position: absolute; top: 4px; left: 4px; font-size: 14px; background: rgba(0,0,0,0.5); border-radius: 50%; padding: 2px; }
 
         
-        #viewer-image { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center center; transition: transform 0.1s ease; pointer-events: none; }
+        #viewer-image { width: 100%; height: 100%; object-fit: contain; pointer-events: none; display: block; }
         
         #sidebar { width: 380px; background-color: #1e1e1e; border-left: 1px solid #333; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; transition: background 0.3s; }
         body.light-theme #sidebar { background-color: #fff; border-left-color: #ddd; }
@@ -518,9 +518,35 @@
             localStorage.setItem('inspector-toggle', document.getElementById('inspector-toggle').checked);
         }
 
+        
+        function fitWrapperToImage() {
+            if (!currentMetadata || !currentMetadata.image) return;
+            const cw = container.clientWidth;
+            const ch = container.clientHeight;
+            const iw = currentMetadata.image.width;
+            const ih = currentMetadata.image.height;
+            
+            const containerRatio = cw / ch;
+            const imageRatio = iw / ih;
+            
+            let w, h;
+            if (imageRatio > containerRatio) {
+                w = cw;
+                h = cw / imageRatio;
+            } else {
+                h = ch;
+                w = ch * imageRatio;
+            }
+            
+            viewer.style.width = w + 'px';
+            viewer.style.height = h + 'px';
+        }
+        window.addEventListener('resize', fitWrapperToImage);
+
         function drawOverlays() {
             svgLayer.innerHTML = "";
             if (!currentMetadata) return;
+            fitWrapperToImage();
             
             const w = currentMetadata.image.width;
             const h = currentMetadata.image.height;
@@ -805,16 +831,38 @@
         function resetZoom() { zoomLevel = 1; transX = 0; transY = 0; setTransform(); }
         
         container.addEventListener('wheel', (e) => {
+            if (viewMode !== 'single') return; // Only zoom in inspector mode
             e.preventDefault();
-            const zoomAmount = 0.1;
-            if (e.deltaY < 0) zoomLevel += zoomAmount;
-            else zoomLevel -= zoomAmount;
-            if (zoomLevel < 1) resetZoom();
-            else setTransform();
-        });
+            const rect = viewer.getBoundingClientRect();
+            
+            // Mouse position relative to the currently transformed viewer
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Unscaled position
+            const unscaledX = mouseX / zoomLevel;
+            const unscaledY = mouseY / zoomLevel;
+            
+            if (e.deltaY < 0) zoomLevel *= 1.15;
+            else zoomLevel /= 1.15;
+            
+            if (zoomLevel <= 1) {
+                resetZoom();
+                return;
+            }
+            
+            // Counteract the expansion to keep the point under the cursor
+            const diffX = (unscaledX * zoomLevel) - mouseX;
+            const diffY = (unscaledY * zoomLevel) - mouseY;
+            
+            transX -= diffX;
+            transY -= diffY;
+            
+            setTransform();
+        }, { passive: false });
         
         container.addEventListener('mousedown', (e) => {
-            if (zoomLevel > 1) {
+            if (viewMode === 'single' && zoomLevel > 1) {
                 isDragging = true;
                 startX = e.clientX - transX;
                 startY = e.clientY - transY;
