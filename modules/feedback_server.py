@@ -207,16 +207,24 @@ def get_inspector_metadata(filename: str):
         logger.error(f"Failed to read metadata for {filename}: {e}")
         return JSONResponse({"error": "Failed to read metadata"}, status_code=500)
 
+from fastapi import Query
+
 @app.get("/api/images/{filename}")
-def serve_image(filename: str):
+def serve_image(filename: str, mode: str = Query("original")):
     """
-    Serve the image directly. Tries to use the lightweight previews if available,
-    otherwise falls back to the original source path.
+    Serve the image directly. 
+    mode='preview': tries to serve a lightweight preview from .internal/previews.
+    mode='original': skips previews and serves the original.
     """
-    # 1. Try lightweight previews
-    preview_path = Path(_OUTPUT_DIR) / ".internal" / "previews" / filename
-    if preview_path.exists():
-        return FileResponse(preview_path)
+    if mode == "preview":
+        stem = Path(filename).stem
+        preview_dir = Path(_OUTPUT_DIR) / ".internal" / "previews"
+        if preview_dir.exists():
+            matches = list(preview_dir.glob(f"{stem}_*.jpg"))
+            if matches:
+                return FileResponse(matches[0])
+            if (preview_dir / filename).exists():
+                return FileResponse(preview_dir / filename)
         
     # 2. Try visual export folders (if --profile was used)
     for folder in ["keep_preview", "review_preview", "reject_preview"]:

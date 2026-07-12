@@ -21,8 +21,8 @@
         
         #thumbnail-grid { flex: 1; overflow-y: auto; padding: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); align-content: start; grid-auto-rows: max-content; }
         
-        .thumb-item { position: relative; border-radius: 4px; overflow: hidden; border: 2px solid transparent; cursor: pointer; background: #222; aspect-ratio: 3/2; }
-        .thumb-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .thumb-item { position: relative; border-radius: 4px; border: 2px solid transparent; cursor: pointer; background: #1a1a1a; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; }
+        .thumb-item img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .thumb-item.selected { border-color: #007acc; box-shadow: 0 0 10px rgba(0,122,204,0.5); }
         
         #transform-wrapper { position: relative; width: 100%; height: 100%; transform-origin: top left; }
@@ -343,7 +343,7 @@
                 div.id = 'thumb-' + idx;
                 
                 const imgEl = document.createElement('img');
-                imgEl.src = `/api/images/${img.filename}`;
+                imgEl.src = `/api/images/${img.filename}?mode=preview`;
                 imgEl.loading = 'lazy';
                 
                 div.appendChild(imgEl);
@@ -419,7 +419,7 @@
                 }
                 
                 const imgEl = document.createElement('img');
-                imgEl.src = `/api/images/${bImg.filename}`;
+                imgEl.src = `/api/images/${bImg.filename}?mode=preview`;
                 imgEl.loading = 'lazy';
                 
                 div.appendChild(imgEl);
@@ -656,7 +656,7 @@
             reviewStartTime = Date.now();
             const img = images[currentIndex];
             
-            viewerImage.src = `/api/images/${img.filename}`;
+            viewerImage.src = `/api/images/${img.filename}?mode=preview`;
             updateBurstPanel();
             resetZoom();
             
