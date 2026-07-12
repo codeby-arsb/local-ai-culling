@@ -10,6 +10,33 @@
         
         #viewer-container { flex: 1; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; background-color: #000; cursor: grab; }
         body.light-theme #viewer-container { background-color: #e0e0e0; }
+
+        #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        
+        #browser-container { flex: 1; display: none; flex-direction: column; overflow: hidden; background: #0a0a0a; }
+        body.light-theme #browser-container { background: #f0f0f0; }
+        
+        #browser-stats { padding: 10px 20px; background: #1a1a1a; color: #aaa; font-size: 0.9em; border-bottom: 1px solid #333; }
+        body.light-theme #browser-stats { background: #e0e0e0; border-bottom: 1px solid #ccc; color: #555; }
+        
+        #thumbnail-grid { flex: 1; overflow-y: auto; padding: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); align-content: start; }
+        
+        .thumb-item { position: relative; border-radius: 4px; overflow: hidden; border: 2px solid transparent; cursor: pointer; background: #222; }
+        .thumb-item img { width: 100%; height: 100%; object-fit: cover; aspect-ratio: 3/2; display: block; }
+        .thumb-item.selected { border-color: #007acc; box-shadow: 0 0 10px rgba(0,122,204,0.5); }
+        
+        #transform-wrapper { position: relative; width: 100%; height: 100%; transform-origin: top left; }
+        
+        #burst-panel { height: 120px; background: #1a1a1a; border-top: 1px solid #333; display: none; flex-direction: column; }
+        body.light-theme #burst-panel { background: #e0e0e0; border-top-color: #ccc; }
+        #burst-title { font-size: 0.8em; padding: 5px 15px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        #burst-strip { flex: 1; display: flex; overflow-x: auto; padding: 0 15px; gap: 10px; align-items: center; }
+        
+        .burst-thumb { height: 80px; aspect-ratio: 3/2; border-radius: 4px; overflow: hidden; border: 2px solid #333; cursor: pointer; flex-shrink: 0; position: relative; }
+        .burst-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .burst-thumb.winner { border-color: #50cd32; }
+        .burst-thumb.winner::after { content: '🟢'; position: absolute; top: 4px; left: 4px; font-size: 10px; }
+
         
         #viewer-image { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center center; transition: transform 0.1s ease; pointer-events: none; }
         
@@ -73,12 +100,37 @@
 </head>
 <body>
 
-    <div id="viewer-container">
-        <img id="viewer-image" src="" alt="Preview">
-        <svg id="svgLayer" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: none;"></svg>
+    <div id="main-content">
+        <!-- Browser Mode -->
+        <div id="browser-container">
+            <div id="browser-stats">Loading...</div>
+            <div id="thumbnail-grid"></div>
+        </div>
+        
+        <!-- Inspector Mode -->
+        <div id="viewer-container">
+            <div id="transform-wrapper">
+                <img id="viewer-image" src="" alt="Preview">
+                <svg id="svgLayer" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: none;"></svg>
+            </div>
+            <div id="burst-panel">
+                <div id="burst-title">Burst Group</div>
+                <div id="burst-strip"></div>
+            </div>
+        </div>
     </div>
 
     <div id="sidebar">
+        <div style="margin-bottom: 15px;">
+            <label style="color: #aaa; font-size: 0.9em; display:block; margin-bottom:5px;">View Mode</label>
+            <select id="view-mode" onchange="changeViewMode()" class="btn toggle" style="width: 100%; margin-bottom: 10px;">
+                <option value="single">Inspector (Single)</option>
+                <option value="xlarge">Browser (Extra Large)</option>
+                <option value="large">Browser (Large)</option>
+                <option value="medium" selected>Browser (Medium)</option>
+                <option value="small">Browser (Small)</option>
+            </select>
+        </div>
         <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
             <label style="font-size: 0.9em; display: flex; align-items: center; cursor: pointer;">
                 <input type="checkbox" id="inspector-toggle" onchange="savePrefs(); toggleInspectorMode()" style="margin-right: 8px;">
@@ -194,6 +246,7 @@
         let allImages = [];
         let images = [];
         let currentIndex = 0;
+        let totalStats = { total: 0, completed: 0, remaining: 0 };
         
         let viewMode = 'single'; // single, xlarge, large, medium, small
         let pendingDecision = null;
