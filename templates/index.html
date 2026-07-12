@@ -196,10 +196,15 @@
                 <option value="REVIEW">Show Only REVIEW</option>
                 <option value="REJECT">Show Only REJECT</option>
             </select>
-            <select id="filter-burst" onchange="applyFilters()">
-                <option value="ALL">All Burst Groups</option>
-                <!-- Populated dynamically -->
-            </select>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button onclick="navigateBurst(-1)" style="padding: 4px 8px; cursor: pointer; background: #333; border: 1px solid #555; color: white;">&#9664; Prev Burst</button>
+                <select id="filter-burst" onchange="applyFilters()" style="margin: 0;">
+                    <option value="ALL">All Burst Groups</option>
+                    <!-- Populated dynamically -->
+                </select>
+                <button onclick="navigateBurst(1)" style="padding: 4px 8px; cursor: pointer; background: #333; border: 1px solid #555; color: white;">Next Burst &#9654;</button>
+                <span id="burst-counter" style="color: #aaa; margin-left: 10px; font-size: 0.9em; display: none;"></span>
+            </div>
         </div>
 
         <div class="stat-box">
@@ -473,6 +478,37 @@
             });
         }
         
+        
+        function navigateBurst(direction) {
+            const select = document.getElementById('filter-burst');
+            // Skip the "ALL" option which is index 0
+            if (select.options.length <= 1) return;
+            
+            let currentIdx = select.selectedIndex;
+            if (currentIdx === 0) {
+                // If currently on ALL, jump to first or last burst
+                currentIdx = direction > 0 ? 1 : select.options.length - 1;
+            } else {
+                currentIdx += direction;
+                if (currentIdx < 1) currentIdx = select.options.length - 1;
+                if (currentIdx >= select.options.length) currentIdx = 1;
+            }
+            
+            select.selectedIndex = currentIdx;
+            applyFilters();
+        }
+        
+        function updateBurstCounter() {
+            const counter = document.getElementById('burst-counter');
+            const select = document.getElementById('filter-burst');
+            if (select.selectedIndex > 0) {
+                counter.innerText = `Burst ${select.selectedIndex} / ${select.options.length - 1}`;
+                counter.style.display = 'inline';
+            } else {
+                counter.style.display = 'none';
+            }
+        }
+    
         function applyFilters() {
             const classFilter = document.getElementById('filter-class').value;
             const burstFilter = document.getElementById('filter-burst').value;
@@ -483,16 +519,30 @@
                 return classMatch && burstMatch;
             });
             
+            updateBurstCounter();
             currentIndex = 0;
             if (images.length > 0) {
+                // If a specific burst is selected, try to find the winner
+                if (burstFilter !== 'ALL') {
+                    const winnerIdx = images.findIndex(img => img.is_best_frame);
+                    if (winnerIdx !== -1) {
+                        currentIndex = winnerIdx;
+                    }
+                }
+                
                 viewer.style.display = 'flex';
                 if (viewMode === 'single') {
-                    loadImage(0);
+                    loadImage(currentIndex);
                     document.getElementById('viewer-container').style.display = 'flex';
                 } else {
                     renderBrowserGrid();
                     document.getElementById('browser-container').style.display = 'flex';
                 }
+                
+                // Scroll burst panel to beginning
+                const strip = document.getElementById('burst-strip');
+                if (strip) strip.scrollLeft = 0;
+                
             } else {
                 document.getElementById('filename').innerText = "No photos match filter.";
                 viewer.style.display = 'none';
@@ -922,6 +972,15 @@
             
             if (images.length === 0) return;
             
+            if (e.ctrlKey && e.key === 'ArrowRight') {
+                navigateBurst(1);
+                e.preventDefault();
+                return;
+            } else if (e.ctrlKey && e.key === 'ArrowLeft') {
+                navigateBurst(-1);
+                e.preventDefault();
+                return;
+            }
             const key = e.key.toUpperCase();
             
             if (viewMode !== 'single') {
