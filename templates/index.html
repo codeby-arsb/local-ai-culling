@@ -160,8 +160,8 @@
                 <div style="margin-bottom: 10px;">
                     <div style="font-weight: bold; color: #aaa; margin-bottom: 5px; font-size: 0.85em; text-transform: uppercase;">People</div>
                     <label style="display:block;margin-bottom:3px;cursor:pointer;font-size:0.9em;"><input type="checkbox" id="layer-faces" onchange="savePrefs(); drawOverlays()" disabled style="width:auto;margin-right:8px;"> Face Detection</label>
+                    <label style="display:block;margin-bottom:3px;cursor:pointer;font-size:0.9em;"><input type="checkbox" id="layer-facemesh" onchange="savePrefs(); drawOverlays()" disabled style="width:auto;margin-right:8px;"> Face Mesh</label>
                     <label style="display:block;margin-bottom:3px;cursor:pointer;font-size:0.9em;"><input type="checkbox" id="layer-eyes" onchange="savePrefs(); drawOverlays()" disabled style="width:auto;margin-right:8px;"> Eye State</label>
-                    <label style="display:block;margin-bottom:3px;cursor:pointer;color:#555;font-size:0.9em;"><input type="checkbox" disabled style="width:auto;margin-right:8px;"> Face Mesh</label>
                 </div>
                 <div style="margin-bottom: 10px;">
                     <div style="font-weight: bold; color: #aaa; margin-bottom: 5px; font-size: 0.85em; text-transform: uppercase;">Scene</div>
@@ -514,6 +514,7 @@
         function savePrefs() {
             localStorage.setItem('layer-faces', document.getElementById('layer-faces').checked);
             localStorage.setItem('layer-eyes', document.getElementById('layer-eyes').checked);
+            localStorage.setItem('layer-facemesh', document.getElementById('layer-facemesh').checked);
             localStorage.setItem('layer-subjects', document.getElementById('layer-subjects').checked);
             localStorage.setItem('inspector-toggle', document.getElementById('inspector-toggle').checked);
         }
@@ -589,8 +590,25 @@
                     rect.setAttribute("height", face.coords[3] - face.coords[1]);
                     rect.setAttribute("fill", "none");
                     rect.setAttribute("stroke", "#00ff00");
-                    rect.setAttribute("stroke-width", "3");
+                    rect.setAttribute("stroke-width", "1.5");
                     svgLayer.appendChild(rect);
+                });
+            }
+
+            // Layer 6: Face Mesh
+            const layerFaceMesh = document.getElementById('layer-facemesh');
+            if (layerFaceMesh && layerFaceMesh.checked && currentMetadata.faces) {
+                currentMetadata.faces.forEach(face => {
+                    if (face.landmarks) {
+                        face.landmarks.forEach(lm => {
+                            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                            circle.setAttribute("cx", lm.x * w);
+                            circle.setAttribute("cy", lm.y * h);
+                            circle.setAttribute("r", "0.5");
+                            circle.setAttribute("fill", "rgba(255, 255, 255, 0.4)");
+                            svgLayer.appendChild(circle);
+                        });
+                    }
                 });
             }
 
@@ -598,13 +616,25 @@
             const layerEyes = document.getElementById('layer-eyes');
             if (layerEyes && layerEyes.checked && currentMetadata.faces) {
                 currentMetadata.faces.forEach(face => {
-                    if (face.landmarks) {
-                        face.landmarks.forEach(lm => {
+                    if (face.landmarks && face.landmarks.length >= 478) {
+                        // MediaPipe Iris centers are at 468 (right eye) and 473 (left eye)
+                        const rightEye = face.landmarks[468];
+                        const leftEye = face.landmarks[473];
+                        
+                        let color = "#888888";
+                        if (face.eye_state === "Open") color = "#00ff00"; // Green
+                        else if (face.eye_state === "Mid Blink") color = "#ff9800"; // Orange
+                        else if (face.eye_state === "Both Eyes Closed" || face.eye_state === "One Eye Closed") color = "#ff0000"; // Red
+                        
+                        [rightEye, leftEye].forEach(lm => {
                             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                             circle.setAttribute("cx", lm.x * w);
                             circle.setAttribute("cy", lm.y * h);
-                            circle.setAttribute("r", "1.5");
-                            circle.setAttribute("fill", "#ff0000");
+                            circle.setAttribute("r", "3");
+                            circle.setAttribute("fill", color);
+                            // Add a thin stroke so it's visible on bright faces
+                            circle.setAttribute("stroke", "rgba(0,0,0,0.5)");
+                            circle.setAttribute("stroke-width", "1");
                             svgLayer.appendChild(circle);
                         });
                     }
@@ -619,11 +649,13 @@
             const f = document.getElementById('layer-faces');
             const e = document.getElementById('layer-eyes');
             const s = document.getElementById('layer-subjects');
+            const fm = document.getElementById('layer-facemesh');
             
             // Restore toggles to user preferences from localStorage (default true)
             f.disabled = true; f.checked = localStorage.getItem('layer-faces') !== 'false';
             e.disabled = true; e.checked = localStorage.getItem('layer-eyes') !== 'false';
             s.disabled = true; s.checked = localStorage.getItem('layer-subjects') !== 'false';
+            fm.disabled = true; fm.checked = localStorage.getItem('layer-facemesh') === 'true';
             
             try {
                 const response = await fetch(`/api/inspector/${filename}`);
@@ -635,6 +667,7 @@
                             f.disabled = false;
                             if (currentMetadata.faces.some(face => face.landmarks)) {
                                 e.disabled = false;
+                                fm.disabled = false;
                             }
                             
                             document.getElementById('expression-panel').style.display = 'block';
