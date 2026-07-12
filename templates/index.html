@@ -179,10 +179,10 @@
             
             <div class="title" style="color: #007acc; margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">Expression Intelligence</div>
             <div id="expression-panel" style="font-size: 0.9em; display: none;">
-                <div style="margin-bottom: 4px;">ðŸ‘ Eyes: <strong id="expr-eyes">Unknown</strong></div>
-                <div style="margin-bottom: 4px;">ðŸ˜Š Expression: <strong id="expr-type">Unknown</strong></div>
-                <div style="margin-bottom: 4px;">ðŸ‘¤ Visibility: <strong id="expr-vis">Unknown</strong></div>
-                <div style="margin-bottom: 4px;">ðŸ“· Face Quality: <strong id="expr-qual">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">Eyes: <strong id="expr-eyes">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">Expression: <strong id="expr-type">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">Visibility: <strong id="expr-vis">Unknown</strong></div>
+                <div style="margin-bottom: 4px;">Face Quality: <strong id="expr-qual">Unknown</strong></div>
             </div>
             <div id="expression-none" style="font-size: 0.9em; color: #777;">No face detected.</div>
         </div>
@@ -215,7 +215,7 @@
             <div class="info-row"><span class="key">R</span> <span>Override to REJECT</span></div>
             <div class="info-row"><span class="key">S</span> <span>Skip Photo</span></div>
             <div class="info-row"><span class="key">Z</span> <span>Toggle Zoom</span></div>
-            <div class="info-row"><span class="key">â† â†’</span> <span>Prev / Next (no save)</span></div>
+            <div class="info-row"><span class="key">Left / Right</span> <span>Prev / Next (no save)</span></div>
         </div>
         
         <div id="progress">
@@ -581,6 +581,7 @@
             }
             
             // Layer 5: Face Detection
+            const layerFaces = document.getElementById('layer-faces');
             if (layerFaces && layerFaces.checked && currentMetadata.faces) {
                 currentMetadata.faces.forEach(face => {
                     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
