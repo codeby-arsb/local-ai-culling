@@ -19,10 +19,10 @@
         #browser-stats { padding: 10px 20px; background: #1a1a1a; color: #aaa; font-size: 0.9em; border-bottom: 1px solid #333; }
         body.light-theme #browser-stats { background: #e0e0e0; border-bottom: 1px solid #ccc; color: #555; }
         
-        #thumbnail-grid { flex: 1; overflow-y: auto; padding: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); align-content: start; }
+        #thumbnail-grid { flex: 1; overflow-y: auto; padding: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); align-content: start; grid-auto-rows: max-content; }
         
-        .thumb-item { position: relative; border-radius: 4px; overflow: hidden; border: 2px solid transparent; cursor: pointer; background: #222; }
-        .thumb-item img { width: 100%; height: 100%; object-fit: cover; aspect-ratio: 3/2; display: block; }
+        .thumb-item { position: relative; border-radius: 4px; overflow: hidden; border: 2px solid transparent; cursor: pointer; background: #222; aspect-ratio: 3/2; }
+        .thumb-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .thumb-item.selected { border-color: #007acc; box-shadow: 0 0 10px rgba(0,122,204,0.5); }
         
         #transform-wrapper { position: relative; width: 100%; height: 100%; transform-origin: top left; }
@@ -34,8 +34,8 @@
         
         .burst-thumb { height: 80px; aspect-ratio: 3/2; border-radius: 4px; overflow: hidden; border: 2px solid #333; cursor: pointer; flex-shrink: 0; position: relative; }
         .burst-thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .burst-thumb.winner { border-color: #50cd32; }
-        .burst-thumb.winner::after { content: '🟢'; position: absolute; top: 4px; left: 4px; font-size: 10px; }
+        .burst-thumb.winner { border-color: #50cd32; border-width: 4px; }
+        .burst-thumb.winner::after { content: '🟢'; position: absolute; top: 4px; left: 4px; font-size: 14px; background: rgba(0,0,0,0.5); border-radius: 50%; padding: 2px; }
 
         
         #viewer-image { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center center; transition: transform 0.1s ease; pointer-events: none; }
@@ -272,6 +272,28 @@
             const data = await res.json();
             allImages = data.images;
             totalStats.total = data.total;
+            
+            // Remap Burst IDs and filter single images
+            let groupCounts = {};
+            allImages.forEach(img => {
+                if (img.duplicate_group_id) {
+                    groupCounts[img.duplicate_group_id] = (groupCounts[img.duplicate_group_id] || 0) + 1;
+                }
+            });
+            let burstMap = {};
+            let burstCounter = 1;
+            allImages.forEach(img => {
+                if (img.duplicate_group_id) {
+                    if (groupCounts[img.duplicate_group_id] > 1) {
+                        if (!burstMap[img.duplicate_group_id]) {
+                            burstMap[img.duplicate_group_id] = "Burst " + burstCounter++;
+                        }
+                        img.duplicate_group_id = burstMap[img.duplicate_group_id];
+                    } else {
+                        img.duplicate_group_id = null;
+                    }
+                }
+            });
             totalStats.completed = data.completed;
             totalStats.remaining = data.remaining;
             
@@ -384,7 +406,7 @@
                 return;
             }
             
-            title.innerText = `Burst ${currentImg.duplicate_group_id} (${burstImages.length} Images)`;
+            title.innerText = `${currentImg.duplicate_group_id} (${burstImages.length} Images)`;
             panel.style.display = 'flex';
             
             burstImages.forEach(bImg => {
@@ -439,10 +461,14 @@
                 if (img.duplicate_group_id) bursts.add(img.duplicate_group_id);
             });
             
-            Array.from(bursts).sort().forEach(b => {
+            Array.from(bursts).sort((a,b) => {
+                let numA = parseInt(a.replace('Burst ', ''));
+                let numB = parseInt(b.replace('Burst ', ''));
+                return numA - numB;
+            }).forEach(b => {
                 const opt = document.createElement('option');
                 opt.value = b;
-                opt.innerText = `Burst ${b}`;
+                opt.innerText = b;
                 select.appendChild(opt);
             });
         }
