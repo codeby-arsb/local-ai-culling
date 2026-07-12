@@ -18,11 +18,11 @@ Because it runs 100% locally on your own hardware, your photographs are never up
 
 ## Screenshot Gallery
 
-### Dashboard Overview
-![Dashboard Overview](docs/screenshots/dashboard_overview.png)
+### Dashboard Overview (Browser Mode)
+![Dashboard Overview](docs/screenshots/browser_mode.png)
 
-### Scene Intelligence
-![Scene Intelligence](docs/screenshots/scene_intelligence.png)
+### Scene Intelligence (Inspector Mode)
+![Scene Intelligence](docs/screenshots/inspector_mode.png)
 
 ### KEEP Folder View
 ![Keep View](docs/screenshots/keep_view.png)
