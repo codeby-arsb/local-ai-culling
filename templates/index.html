@@ -348,6 +348,7 @@
             images.forEach((img, idx) => {
                 const div = document.createElement('div');
                 div.className = 'thumb-item' + (idx === currentIndex ? ' selected' : '');
+                if (img.is_best_frame === 'Yes' || img.is_best_frame === true) div.classList.add('winner');
                 div.id = 'thumb-' + idx;
                 
                 const imgEl = document.createElement('img');
@@ -419,7 +420,7 @@
             
             burstImages.forEach(bImg => {
                 const div = document.createElement('div');
-                div.className = 'burst-thumb' + (bImg.is_best_frame ? ' winner' : '');
+                div.className = 'burst-thumb' + ((bImg.is_best_frame === 'Yes' || bImg.is_best_frame === true) ? ' winner' : '');
                 
                 // If it's the current image, give it a blue outline independent of the winner border
                 if (bImg.filename === currentImg.filename) {
