@@ -25,7 +25,7 @@
         .thumb-item img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .thumb-item.selected { outline: 3px solid #007acc; outline-offset: 2px; box-shadow: 0 0 10px rgba(0,122,204,0.5); z-index: 10; }
         .thumb-item.winner { border-color: #50cd32; }
-        .thumb-item.winner::after { content: '🟢'; position: absolute; top: 8px; left: 8px; font-size: 16px; background: rgba(0,0,0,0.5); border-radius: 50%; padding: 4px; }
+        
         
         #transform-wrapper { position: relative; width: 100%; height: 100%; transform-origin: 0 0; }
         
@@ -38,7 +38,7 @@
         .burst-thumb img { width: 100%; height: 100%; object-fit: cover; }
         .burst-thumb.winner { border-color: #50cd32; border-width: 4px; }
         .burst-thumb.selected { outline: 4px solid #007acc; outline-offset: 2px; z-index: 10; }
-        .burst-thumb.winner::after { content: '🟢'; position: absolute; top: 4px; left: 4px; font-size: 14px; background: rgba(0,0,0,0.5); border-radius: 50%; padding: 2px; }
+        
 
         
         #viewer-image { width: 100%; height: 100%; object-fit: contain; pointer-events: none; display: block; }
@@ -348,7 +348,8 @@
             images.forEach((img, idx) => {
                 const div = document.createElement('div');
                 div.className = 'thumb-item' + (idx === currentIndex ? ' selected' : '');
-                if (img.is_best_frame === 'Yes' || img.is_best_frame === true) div.classList.add('winner');
+                const burstFilter = document.getElementById('filter-burst').value;
+                if (burstFilter !== 'ALL' && (img.is_best_frame === 'Yes' || img.is_best_frame === true)) div.classList.add('winner');
                 div.id = 'thumb-' + idx;
                 
                 const imgEl = document.createElement('img');
