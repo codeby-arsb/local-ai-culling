@@ -152,13 +152,14 @@ The software is highly customizable via `config.yml`. Key configurable options i
 For a deeper dive into the engineering and design philosophy behind Local AI Culling, see:
 - [Implementation Walkthrough](docs/phases/Walkthrough.md)
 - [Architecture Proposal](docs/architecture/Architecture.md)
-- [Validation Reports](docs/research/Validation_Report.md)
+- [Validation Reports](docs/validation/Validation_Report.md)
+- [Known Limitations](docs/KNOWN_LIMITATIONS.md)
 
 ---
 
 ## Roadmap
 
-Check out the [ROADMAP.md](ROADMAP.md) for a summary of completed milestones (like Expression Intelligence and the Editability Engine) and a look at our future goals.
+Check out the [ROADMAP.md](docs/ROADMAP.md) for a summary of completed milestones (like Expression Intelligence and the Editability Engine) and a look at our future goals.
 
 ## License
 

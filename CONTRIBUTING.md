@@ -15,6 +15,6 @@ Thank you for your interest in contributing! Since this project is built for pro
 
 1. Clone the repository and set up a virtual environment.
 2. Install dependencies via `pip install -r requirements.txt`.
-3. Read the [Implementation Walkthrough](docs/walkthrough.md) to understand the internal pipeline architecture (Ingestion -> Technical Analysis -> Duplicate/Burst -> Classification -> Export).
+3. Read the [Implementation Walkthrough](docs/phases/Walkthrough.md) to understand the internal pipeline architecture (Ingestion -> Technical Analysis -> Duplicate/Burst -> Classification -> Export).
 
 We welcome contributions particularly in performance optimizations, new scene intelligence recognizers, and UX improvements to the local dashboard.

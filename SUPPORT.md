@@ -4,7 +4,7 @@ If you need help with Local AI Culling, please refer to the following resources:
 
 ## 1. Documentation
 Before opening an issue, please check the extensive internal documentation in the `docs/` folder or the main `README.md`. 
-The [Implementation Walkthrough](docs/walkthrough.md) provides an excellent overview of how the pipeline operates under the hood.
+The [Implementation Walkthrough](docs/phases/Walkthrough.md) provides an excellent overview of how the pipeline operates under the hood.
 
 ## 2. GitHub Issues
 If you encounter a bug, crash, or an unexpected AI classification, please open an issue on the GitHub repository. 
