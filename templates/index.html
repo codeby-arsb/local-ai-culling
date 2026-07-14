@@ -23,7 +23,9 @@
         
         .thumb-item { position: relative; border-radius: 4px; border: 2px solid transparent; cursor: pointer; background: #1a1a1a; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; }
         .thumb-item img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .thumb-item.selected { border-color: #007acc; box-shadow: 0 0 10px rgba(0,122,204,0.5); }
+        .thumb-item.selected { outline: 3px solid #007acc; outline-offset: 2px; box-shadow: 0 0 10px rgba(0,122,204,0.5); z-index: 10; }
+        .thumb-item.winner { border-color: #50cd32; }
+        .thumb-item.winner::after { content: '🟢'; position: absolute; top: 8px; left: 8px; font-size: 16px; background: rgba(0,0,0,0.5); border-radius: 50%; padding: 4px; }
         
         #transform-wrapper { position: relative; width: 100%; height: 100%; transform-origin: 0 0; }
         
@@ -538,7 +540,7 @@
             if (images.length > 0) {
                 // If a specific burst is selected, try to find the winner
                 if (burstFilter !== 'ALL') {
-                    const winnerIdx = images.findIndex(img => img.is_best_frame);
+                    const winnerIdx = images.findIndex(img => img.is_best_frame === 'Yes' || img.is_best_frame === true);
                     if (winnerIdx !== -1) {
                         currentIndex = winnerIdx;
                     }
