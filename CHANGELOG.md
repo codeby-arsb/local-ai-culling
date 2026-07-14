@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - Unreleased (Release Candidate)
+## [1.0.0] - 2026-07-14
 
 Version 1.0.0 represents the consolidation of all internal development phases (Phases 1 through 8) into the first public-quality Release Candidate. The software has evolved from a proof-of-concept into a robust, production-ready tool.
 

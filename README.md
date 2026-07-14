@@ -125,13 +125,13 @@ Open your browser to `http://localhost:5000`.
 
 ## Project Structure
 
-- `core/`: Core data models, pipeline orchestration, and configuration loading.
-- `modules/`: Individual AI logic modules (blur, composition, face/eye, editability, duplicate detection).
-- `analysis/`: Profiling and performance analysis tools.
-- `scoring/`: Rule-based classification logic linking technical scores to final decisions.
-- `templates/`: HTML templates for the local web dashboard.
-- `utils/`: Shared utilities (image processing, logging).
-- `docs/`: In-depth documentation covering architecture, research, and validation phases.
+- `src/culler/ai/`: Core AI and scoring models (blur, composition, face/eye, editability, duplicate detection).
+- `src/culler/engine/`: System engine (pipeline orchestration, configuration loading, caching).
+- `src/culler/engine/io/`: File ingestion, JSON/CSV exports, visual export, and preview generation.
+- `src/culler/engine/analysis/`: Profiling and metadata utilities.
+- `src/culler/dashboard/`: Local web dashboard interface (`feedback_server.py`) and HTML templates.
+- `tests/`: Smoke tests and module linkage tests.
+- `docs/`: System documentation, phase plans, and architectural walk-throughs.
 - `models/`: Directory for required machine learning weights (`.pt`, `.task`).
 - `output/`: Default directory for hardlinked output and runtime metadata.
 
