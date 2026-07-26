@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageOps
 import rawpy
 
 from culler.engine.models import ImageRecord
@@ -36,8 +36,11 @@ def generate_preview(record: ImageRecord, cache_dir: Path) -> ImageRecord:
                     try:
                         thumb = raw.extract_thumb()
                         if thumb.format == rawpy.ThumbFormat.JPEG:
-                            with open(preview_path, "wb") as f:
-                                f.write(thumb.data)
+                            import io
+                            image = Image.open(io.BytesIO(thumb.data))
+                            image = ImageOps.exif_transpose(image)
+                            image.thumbnail(PREVIEW_MAX_SIZE)
+                            image.save(preview_path, "JPEG", quality=85)
                         elif thumb.format == rawpy.ThumbFormat.BITMAP:
                             # Not a JPEG preview, fallback to pillow
                             image = Image.fromarray(thumb.data)
@@ -58,6 +61,7 @@ def generate_preview(record: ImageRecord, cache_dir: Path) -> ImageRecord:
         elif ext in {".jpg", ".jpeg", ".png"}:
             # Regular image, just resize to create a smaller proxy
             with Image.open(original_path) as img:
+                img = ImageOps.exif_transpose(img)
                 # Convert to RGB to avoid alpha channel issues in JPEG
                 if img.mode in ("RGBA", "P"):
                     img = img.convert("RGB")
