@@ -30,3 +30,10 @@ requires-python = ">=3.8"
 
 [project.scripts]
 culler = "culler.__main__:main"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]

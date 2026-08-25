@@ -234,9 +234,12 @@ def serve_image(filename: str, mode: str = Query("original")):
     """
     Serve the image directly.
     mode='preview': tries to serve a lightweight preview from .internal/previews.
-    mode='original': skips previews and serves the original.
+    mode='original': serves original image for standard web formats, or falls back to rendered preview for RAW files.
     """
-    if mode == "preview":
+    raw_extensions = {".arw", ".cr2", ".cr3", ".nef", ".dng"}
+    is_raw = Path(filename).suffix.lower() in raw_extensions
+
+    if mode == "preview" or is_raw:
         stem = Path(filename).stem
         preview_dir = Path(_OUTPUT_DIR) / ".internal" / "previews"
         if preview_dir.exists():

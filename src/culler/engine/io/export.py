@@ -38,15 +38,22 @@ def run_final_export(records: List[ImageRecord], output_dir: Path):
     if mode == "hardlink" and records:
         # Check first valid record
         for r in records:
-            if r.original_path:
+            if r.original_path and os.path.exists(r.original_path):
+                src_stat = os.stat(r.original_path)
+                dst_stat = os.stat(output_dir)
                 src_drive = os.path.splitdrive(os.path.abspath(r.original_path))[
                     0
                 ].lower()
                 dst_drive = os.path.splitdrive(os.path.abspath(output_dir))[0].lower()
-                if src_drive != dst_drive:
+
+                # Verify device ID (POSIX / Windows) and drive letters (Windows)
+                if (src_drive and dst_drive and src_drive != dst_drive) or (
+                    src_stat.st_dev != dst_stat.st_dev
+                ):
                     error_msg = (
                         f"Export aborted: Hardlinks require input and output directories to be on the same storage volume. "
-                        f"Input is on '{src_drive}', Output is on '{dst_drive}'."
+                        f"Input device '{src_stat.st_dev}' ({src_drive or 'primary'}), "
+                        f"Output device '{dst_stat.st_dev}' ({dst_drive or 'primary'})."
                     )
                     logger.error(error_msg)
                     raise RuntimeError(error_msg)

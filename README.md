@@ -1,8 +1,20 @@
 # Local AI Culling
 
-Local AI Culling is a completely offline, privacy-first, AI-assisted image culling tool built specifically for professional photographers. It analyzes your raw photo shoots, groups bursts, detects duplicates, evaluates technical quality (focus, noise, composition, expressions), and automatically organizes your images into `KEEP`, `REVIEW`, and `REJECT` folders so you can immediately begin editing your best work in Adobe Lightroom or your preferred editor.
+Local AI Culling is an open-source, cross-platform, completely offline, privacy-first AI-assisted image culling application built specifically for professional photographers. It analyzes your raw photo shoots, groups bursts, detects duplicates, evaluates technical quality (focus, noise, composition, expressions), and automatically organizes your images into `KEEP`, `REVIEW`, and `REJECT` folders so you can immediately begin editing your best work in Adobe Lightroom or your preferred editor.
 
 Because it runs 100% locally on your own hardware, your photographs are never uploaded to the cloud, ensuring total client privacy and eliminating subscription fees.
+
+## Platform & Hardware Support
+
+Local AI Culling is engineered with a single, unified codebase that runs seamlessly across platforms with automatic, platform-neutral hardware acceleration:
+
+| Operating System | Architecture | Hardware Acceleration | Runtime Fallback |
+| :--- | :--- | :--- | :--- |
+| **Windows** | `x86_64` | NVIDIA CUDA (where available) | Universal CPU |
+| **macOS** | Apple Silicon (`arm64`) / Intel | Apple Metal / MPS (Metal Performance Shaders) | ARM NEON / CPU |
+| **Linux** | `x86_64` / `arm64` | NVIDIA CUDA (where available) | Universal CPU |
+
+---
 
 ## Features
 
@@ -13,7 +25,7 @@ Because it runs 100% locally on your own hardware, your photographs are never up
 - **Image Editability Engine**: Simulates shadow and highlight recovery on the raw preview to estimate real-world editability (penalizing noise and color degradation).
 - **Scene Intelligence**: Detects environmental and subject context (e.g., weddings, portraits, low-light).
 - **Photographer Feedback Dashboard**: A local web interface to review decisions, adjust thresholds, and understand exactly *why* the AI made a decision.
-- **Hardlink Export Engine**: Instantly creates organized output folders using zero-byte storage hardlinks. The original files are never duplicated or modified.
+- **Hardlink Export Engine**: Instantly creates organized output folders using zero-byte storage hardlinks across Windows drives and POSIX filesystem devices. The original files are never duplicated or modified.
 - **Explainable Decisions**: Transparent scoring. No black-box AI magic—you can see exactly why a photo was rejected.
 
 ## Screenshot Gallery
@@ -76,21 +88,25 @@ The dashboard includes an automated Session Management engine. When the pipeline
 ## Installation
 
 ### Prerequisites
-- **Python**: 3.10 or higher.
-- **Storage**: SSD highly recommended for fast preview reading.
+- **Python**: 3.11 recommended (Python 3.10+ supported).
+- **Storage**: SSD highly recommended for fast preview reading and zero-byte hardlink exports.
 
 ### Setup
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/local_ai_culling.git
-   cd local_ai_culling
+   git clone https://github.com/akashramsb/local-ai-culling.git
+   cd local-ai-culling
    ```
 
 2. **Create a virtual environment:**
    ```bash
+   # macOS / Linux
+   python3 -m venv .venv
+   source .venv/bin/activate
+
+   # Windows
    python -m venv .venv
-   .venv\Scripts\activate  # Windows
-   # source .venv/bin/activate  # Mac/Linux
+   .venv\Scripts\activate
    ```
 
 3. **Install dependencies:**
@@ -99,7 +115,7 @@ The dashboard includes an automated Session Management engine. When the pipeline
    ```
 
 4. **Model Placement:**
-   Ensure the following models are placed in the `models/` directory:
+   Models will download automatically on first run, or you can place them manually in the project root / `models/` directory:
    - `yolov8n.pt` (Ultralytics YOLOv8)
    - `face_landmarker.task` (MediaPipe FaceLandmarker)
 

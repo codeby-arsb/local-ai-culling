@@ -1,6 +1,9 @@
 # Python
 __pycache__/
 *.pyc
+*.egg-info/
+.ruff_cache/
+*.part
 
 # Virtual Environments
 .venv/

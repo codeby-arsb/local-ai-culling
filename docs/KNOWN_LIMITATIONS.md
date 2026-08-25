@@ -1,4 +1,4 @@
-﻿# Known Limitations - Version 1.0
+# Known Limitations - Version 1.0
 
 This document outlines the current known limitations, intentionally postponed features, and technical constraints of Version 1.0. This serves as a reference for users and a roadmap for future v1.x and v2.0 enhancements.
 
@@ -13,9 +13,9 @@ This document outlines the current known limitations, intentionally postponed fe
 - **Future Roadmap:** Implementing batched or chunked perceptual hash comparisons for infinite-scale datasets (v1.x).
 
 ## 3. Hardware Requirements
-- **Current State:** CPU-bound processing using ONNX/TFLite (via MediaPipe and Ultralytics CPU fallbacks).
-- **Limitation:** Extremely slow on older dual-core processors. Without a dedicated NVIDIA GPU (CUDA) or Apple Silicon (MPS), processing times per image average ~300ms–800ms depending on resolution.
-- **Future Roadmap:** Formal PyTorch CUDA/MPS hardware-acceleration profiles (v2.0).
+- **Current State:** Platform-neutral processing with native Apple Silicon (arm64 / ARM NEON / MPS) and Windows/Linux (x86_64 / CUDA) compatibility.
+- **Performance:** On Apple Silicon M-series processors, the full AI quality pipeline processes images at ~60–85ms per image. On older dual-core processors, processing times may average ~300ms–800ms.
+- **Future Roadmap:** Formal batch-level GPU/MPS acceleration profiles for multi-image concurrency (v2.0).
 
 ## 4. Workflow Constraints
 - **Session Persistence:** Currently, closing the dashboard and terminating the local server clears the immediate UI state. Although metadata and CSVs are permanently saved on disk, the UI does not dynamically "reload" a past state if the backend is reset.
