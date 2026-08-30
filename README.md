@@ -94,7 +94,7 @@ The dashboard includes an automated Session Management engine. When the pipeline
 ### Setup
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/akashramsb/local-ai-culling.git
+   git clone https://github.com/codeby-arsb/local-ai-culling.git
    cd local-ai-culling
    ```
 
